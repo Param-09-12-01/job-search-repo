@@ -1,0 +1,39 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:jobcopilot;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ''
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    properties:
+      hibernate:
+        globally_quoted_identifiers: false
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  cache:
+    type: none
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+app:
+  security:
+    jwt:
+      secret: test-secret-key-that-is-at-least-32-bytes-long-for-hs256-ok
+      access-token-ttl-minutes: 60
+      refresh-token-ttl-days: 7
+      issuer: job-search-copilot-test
+    bootstrap-admin:
+      username: admin
+      password: admin123!
+      email: admin@test.local
+  scheduler:
+    enabled: false

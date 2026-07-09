@@ -1,0 +1,14 @@
+{
+  "name": "job-copilot-automation",
+  "version": "1.0.0",
+  "description": "Playwright helper that fills job application fields and stops (never submits).",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "postinstall": "playwright install chromium",
+    "prepare-application": "node prepare-application.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.47.2"
+  }
+}
