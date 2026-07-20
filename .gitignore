@@ -7,6 +7,9 @@
 *.swo
 *~
 
+# Claude
+.claude/
+
 # Backend — application.yml contains secrets (API keys, passwords)
 backend/src/main/resources/application.yml
 

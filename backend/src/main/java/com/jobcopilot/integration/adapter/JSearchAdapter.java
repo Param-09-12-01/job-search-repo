@@ -58,7 +58,7 @@ public class JSearchAdapter extends AbstractHttpJobSourceAdapter {
         String apiKey = settingsService.getValue("integration.jsearch.api-key", config.getApiKey());
         String url = UriComponentsBuilder
                 .fromHttpUrl(config.getBaseUrl())
-                .path("/search")
+                .path("/search-v2")
                 .queryParam("query", buildQuery())
                 .queryParam("page", 1)
                 .queryParam("num_pages", 1)
@@ -75,9 +75,13 @@ public class JSearchAdapter extends AbstractHttpJobSourceAdapter {
                 throw new IntegrationException("Empty response from JSearch");
             }
             JsonNode data = body.get("data");
-            if (data != null && data.isArray()) {
-                for (JsonNode node : data) {
-                    // Filter by date (15 days)
+            if (data == null) {
+                throw new IntegrationException("JSearch returned no data");
+            }
+            // v2 wraps jobs under data.jobs; fall back to data as array for v1 compat
+            JsonNode jobs = data.has("jobs") ? data.get("jobs") : data;
+            if (jobs != null && jobs.isArray()) {
+                for (JsonNode node : jobs) {
                     String dateStr = text(node, "job_posted_at_datetime_utc");
                     if (dateStr != null) {
                         var postedAt = parseIsoDate(dateStr);

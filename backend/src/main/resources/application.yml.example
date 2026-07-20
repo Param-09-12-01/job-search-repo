@@ -135,7 +135,7 @@ app:
       app-key: ${ADZUNA_APP_KEY:}
       country: ${ADZUNA_COUNTRY:us}
     jsearch:
-      enabled: ${JSEARCH_ENABLED:false}
+      enabled: ${JSEARCH_ENABLED:true}
       base-url: https://jsearch.p.rapidapi.com
       api-key: ${JSEARCH_API_KEY:}
       host: jsearch.p.rapidapi.com

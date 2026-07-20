@@ -249,7 +249,7 @@ Most settings are also editable at runtime via **Settings** in the UI (secrets a
 - **RemoteOK** — no key needed. Public API at `remoteok.com/api`.
 - **Findwork** — free API key from <https://findwork.dev/developers/>.
 - **Adzuna** — register at <https://developer.adzuna.com/>. You receive an `app_id` and `app_key`.
-- **JSearch** — deprecated (search endpoint removed). Disabled by default.
+- **JSearch** — subscribe on RapidAPI: <https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch>. Free tier: 200 req/month.
 - **Telegram** — create a bot with [@BotFather](https://t.me/BotFather) to get a bot token; get your
   `chat_id` (e.g. via [@userinfobot](https://t.me/userinfobot)).
 

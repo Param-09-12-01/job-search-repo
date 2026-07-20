@@ -75,7 +75,7 @@ SchedulerLog updated (SUCCESS/FAILED + counts)
 | **RemoteOK** | No | Yes | Curated remote tech jobs, highest quality |
 | **Findwork** | Yes (free API key) | Yes | Tech job aggregator, sign up at findwork.dev |
 | **Adzuna** | Yes (APP_ID + APP_KEY) | Free tier available | May be blocked in some regions |
-| **JSearch** | Yes (RapidAPI key) | **Deprecated** | Search endpoint removed from API |
+| **JSearch** | Yes (RapidAPI key) | Free tier (200 req/month) | Aggregates from many boards, uses `/search-v2` endpoint |
 
 Each adapter's `validate()` checks:
 1. Is it enabled in SettingsService (DB) or AppProperties (application.yml)?
