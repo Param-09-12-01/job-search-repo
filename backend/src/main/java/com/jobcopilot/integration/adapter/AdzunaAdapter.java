@@ -7,6 +7,7 @@ import com.jobcopilot.entity.Profile;
 import com.jobcopilot.entity.enums.JobSourceType;
 import com.jobcopilot.integration.AbstractHttpJobSourceAdapter;
 import com.jobcopilot.service.ProfileService;
+import com.jobcopilot.service.SettingsService;
 import com.jobcopilot.util.JsonListUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -30,11 +31,14 @@ public class AdzunaAdapter extends AbstractHttpJobSourceAdapter {
 
     private final AppProperties.Integration.Adzuna config;
     private final ProfileService profileService;
+    private final SettingsService settingsService;
 
-    public AdzunaAdapter(RestClient restClient, AppProperties properties, ProfileService profileService) {
+    public AdzunaAdapter(RestClient restClient, AppProperties properties, ProfileService profileService,
+                         SettingsService settingsService) {
         super(restClient);
         this.config = properties.getIntegration().getAdzuna();
         this.profileService = profileService;
+        this.settingsService = settingsService;
     }
 
     @Override
@@ -44,20 +48,24 @@ public class AdzunaAdapter extends AbstractHttpJobSourceAdapter {
 
     @Override
     public boolean validate() {
-        return config.isEnabled()
-                && notBlank(config.getAppId())
-                && notBlank(config.getAppKey());
+        boolean enabled = settingsService.getBooleanValue("integration.adzuna.enabled", config.isEnabled());
+        String appId = settingsService.getValue("integration.adzuna.app-id", config.getAppId());
+        String appKey = settingsService.getValue("integration.adzuna.app-key", config.getAppKey());
+        return enabled && notBlank(appId) && notBlank(appKey);
     }
 
     @Override
     public List<Object> fetchJobs() {
         List<Object> raw = new ArrayList<>();
         String query = buildQuery();
+        String appId = settingsService.getValue("integration.adzuna.app-id", config.getAppId());
+        String appKey = settingsService.getValue("integration.adzuna.app-key", config.getAppKey());
+        String country = settingsService.getValue("integration.adzuna.country", config.getCountry());
         String url = UriComponentsBuilder
                 .fromHttpUrl(config.getBaseUrl())
-                .pathSegment("jobs", config.getCountry(), "search", "1")
-                .queryParam("app_id", config.getAppId())
-                .queryParam("app_key", config.getAppKey())
+                .pathSegment("jobs", country, "search", "1")
+                .queryParam("app_id", appId)
+                .queryParam("app_key", appKey)
                 .queryParam("results_per_page", 50)
                 .queryParam("what", query)
                 .queryParam("content-type", "application/json")
@@ -67,9 +75,19 @@ public class AdzunaAdapter extends AbstractHttpJobSourceAdapter {
         JsonNode body = getJson(url);
         JsonNode results = body.get("results");
         if (results != null && results.isArray()) {
-            results.forEach(raw::add);
+            for (JsonNode node : results) {
+                // Filter by date (15 days)
+                String dateStr = text(node, "created");
+                if (dateStr != null) {
+                    var postedAt = parseIsoDate(dateStr);
+                    if (postedAt != null && postedAt.isBefore(java.time.LocalDateTime.now().minusDays(15))) {
+                        continue;
+                    }
+                }
+                raw.add(node);
+            }
         }
-        log.info("Adzuna fetched {} raw postings", raw.size());
+        log.info("Adzuna fetched {} postings (15 day limit)", raw.size());
         return raw;
     }
 

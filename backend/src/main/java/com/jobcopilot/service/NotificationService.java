@@ -1,5 +1,6 @@
 package com.jobcopilot.service;
 
+import com.jobcopilot.config.AppProperties;
 import com.jobcopilot.dto.common.PageResponse;
 import com.jobcopilot.dto.notification.NotificationResponse;
 import com.jobcopilot.entity.Notification;
@@ -32,13 +33,19 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
+    private final SettingsService settingsService;
+    private final AppProperties properties;
     private final Map<NotificationChannel, NotificationSender> senders;
 
     public NotificationService(NotificationRepository notificationRepository,
                                NotificationMapper notificationMapper,
+                               SettingsService settingsService,
+                               AppProperties properties,
                                List<NotificationSender> senderBeans) {
         this.notificationRepository = notificationRepository;
         this.notificationMapper = notificationMapper;
+        this.settingsService = settingsService;
+        this.properties = properties;
         this.senders = senderBeans.stream()
                 .collect(Collectors.toMap(NotificationSender::channel, s -> s));
     }
@@ -53,6 +60,48 @@ public class NotificationService {
         int delivered = 0;
         for (NotificationSender sender : senders.values()) {
             if (!sender.isEnabled()) {
+                continue;
+            }
+            Notification record = Notification.builder()
+                    .channel(sender.channel())
+                    .title(title)
+                    .message(message)
+                    .posting(posting)
+                    .status(NotificationStatus.PENDING)
+                    .build();
+            try {
+                sender.send(title, message);
+                record.setStatus(NotificationStatus.SENT);
+                record.setSentAt(LocalDateTime.now());
+                delivered++;
+            } catch (Exception e) {
+                record.setStatus(NotificationStatus.FAILED);
+                record.setError(e.getMessage());
+                log.warn("Notification delivery failed on {}: {}", sender.channel(), e.getMessage());
+            }
+            notificationRepository.save(record);
+        }
+        return delivered;
+    }
+
+    /**
+     * Dispatch a high-score job match notification. Email delivery is gated behind the
+     * {@code notification.email.notify-on-match} flag; other channels are sent normally.
+     *
+     * @return number of channels that delivered successfully
+     */
+    @Transactional
+    public int dispatchHighScore(String title, String message, Posting posting) {
+        int delivered = 0;
+        boolean emailNotifyOnMatch = settingsService.getBooleanValue("notification.email.notify-on-match",
+                properties.getNotification().getEmail().isNotifyOnMatch());
+
+        for (NotificationSender sender : senders.values()) {
+            if (!sender.isEnabled()) {
+                continue;
+            }
+            if (sender.channel() == NotificationChannel.EMAIL && !emailNotifyOnMatch) {
+                log.debug("Email notify-on-match is disabled — skipping email for high-score job");
                 continue;
             }
             Notification record = Notification.builder()

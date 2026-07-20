@@ -94,6 +94,7 @@ public class AppProperties {
         @Data
         public static class Email {
             private boolean enabled = false;
+            private boolean notifyOnMatch = false;
             private String from;
             private String to;
         }
@@ -113,6 +114,8 @@ public class AppProperties {
         private JSearch jsearch = new JSearch();
         private Greenhouse greenhouse = new Greenhouse();
         private Lever lever = new Lever();
+        private RemoteOk remoteOk = new RemoteOk();
+        private Findwork findwork = new Findwork();
 
         @Data
         public static class Adzuna {
@@ -143,6 +146,19 @@ public class AppProperties {
             private boolean enabled = false;
             private String baseUrl = "https://api.lever.co/v0/postings";
             private String companies = "";
+        }
+
+        @Data
+        public static class RemoteOk {
+            private boolean enabled = false;
+            private String baseUrl = "https://remoteok.com/api";
+        }
+
+        @Data
+        public static class Findwork {
+            private boolean enabled = false;
+            private String baseUrl = "https://findwork.dev/api";
+            private String apiKey;
         }
     }
 

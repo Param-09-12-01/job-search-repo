@@ -19,7 +19,7 @@ tracks them through a Kanban pipeline, and notifies you of high matches via Emai
 - [Prerequisites](#prerequisites)
 - [Quick Start (Docker)](#quick-start-docker)
 - [Local Development](#local-development)
-- [Configuration & Environment Variables](#configuration--environment-variables)
+- [Configuration](#configuration)
 - [Obtaining API Keys](#obtaining-api-keys)
 - [Job Scoring](#job-scoring)
 - [Prepare Application (Playwright)](#prepare-application-playwright)
@@ -32,7 +32,7 @@ tracks them through a Kanban pipeline, and notifies you of high matches via Emai
 
 ## Features
 
-- **Multi-source aggregation** via a pluggable connector architecture (Adzuna, JSearch, Greenhouse, Lever).
+- **Multi-source aggregation** via a pluggable connector architecture (Greenhouse, Lever, RemoteOK, Findwork, Adzuna).
 - **Weighted 0–100 scoring** across title, location, remote, salary, keywords, experience, freshness, with a company blacklist.
 - **Background scheduler** that fetches, de-duplicates, scores, stores, and notifies on a configurable cron.
 - **Dashboard** with statistic cards, recent notifications, and recent scheduler runs.
@@ -48,7 +48,7 @@ tracks them through a Kanban pipeline, and notifies you of high matches via Emai
 
 ## Tech Stack
 
-**Backend:** Java 21, Spring Boot 3.3, Spring Security, Spring Data JPA/Hibernate, MySQL, Flyway,
+**Backend:** Java 17, Spring Boot 3.3, Spring Security, Spring Data JPA/Hibernate, MySQL, Flyway,
 Maven, Lombok, MapStruct, Bean Validation, springdoc OpenAPI/Swagger, Redis cache, JUnit 5, Mockito.
 
 **Frontend:** React 19, TypeScript, Vite, TailwindCSS, TanStack React Query, React Router, Axios,
@@ -102,13 +102,14 @@ The **connector architecture** is the extensibility seam: every provider impleme
 ## Folder Structure
 
 ```
-AI-APP/
+job-search-repo/
 ├── backend/                 Spring Boot application
 │   ├── src/main/java/com/jobcopilot/...
 │   ├── src/main/resources/
-│   │   ├── application.yml
-│   │   └── db/migration/    Flyway migrations (V1, V2)
-│   ├── src/test/java/...     Unit / repository / controller / integration tests
+│   │   ├── application.yml           ← YOUR config (gitignored, has secrets)
+│   │   ├── application.yml.example   ← Template (tracked in git)
+│   │   └── db/migration/    Flyway migrations
+│   ├── src/test/java/...     Unit / integration tests
 │   ├── Dockerfile
 │   └── pom.xml
 ├── frontend/                React 19 + Vite application
@@ -120,7 +121,6 @@ AI-APP/
 │   ├── prepare-application.mjs
 │   └── package.json
 ├── docker-compose.yml
-├── .env.example
 └── README.md
 ```
 
@@ -129,7 +129,7 @@ AI-APP/
 ## Prerequisites
 
 - **Docker** & **Docker Compose** (recommended path), or
-- **Local tooling:** JDK 21, Maven 3.9+, Node 20+, a MySQL 8 instance, and Redis 7.
+- **Local tooling:** JDK 17, Maven 3.9+, Node 20+, a MySQL 8 instance, and Redis 7.
 - **For Prepare Application:** Node 20+ and Playwright installed in `automation/` (`npm install`),
   run on the host that owns your browser profile.
 
@@ -139,19 +139,15 @@ AI-APP/
 
 ```bash
 # 1. Clone and enter the project
-cd AI-APP
+cd job-search-repo
 
-# 2. Create your environment file
-cp .env.example .env
-#    Edit .env — at minimum set a strong JWT_SECRET and ADMIN_PASSWORD.
-
-# 3. Build and start the full stack (MySQL, Redis, backend, frontend)
+# 2. Build and start the full stack (MySQL, Redis, backend, frontend)
 docker compose up -d --build
 
-# 4. Open the app
+# 3. Open the app
 #    Frontend:  http://localhost:3000
 #    Swagger:   http://localhost:8080/swagger-ui.html
-#    Login with ADMIN_USERNAME / ADMIN_PASSWORD from your .env
+#    Login:     admin / admin123!
 ```
 
 Flyway creates the schema and seeds default settings/sources on first backend boot. A bootstrap
@@ -163,15 +159,31 @@ To stop: `docker compose down` (add `-v` to also drop the MySQL/Redis volumes).
 
 ## Local Development
 
-**Backend**
+### 1. Copy the config template
+
+```bash
+cd backend/src/main/resources
+cp application.yml.example application.yml
+# Edit application.yml — set your MySQL password, API keys, etc.
+```
+
+### 2. Start MySQL + Redis
+
+```bash
+# Using Docker just for the databases:
+docker compose up -d mysql redis
+```
+
+### 3. Run the backend
+
 ```bash
 cd backend
-# Point to a running MySQL + Redis (see application.yml env vars)
 mvn spring-boot:run
 # API: http://localhost:8080  ·  Swagger: http://localhost:8080/swagger-ui.html
 ```
 
-**Frontend**
+### 4. Run the frontend
+
 ```bash
 cd frontend
 npm install
@@ -179,7 +191,8 @@ npm run dev
 # Vite dev server: http://localhost:5173 (proxies /api to http://localhost:8080)
 ```
 
-**Automation helper**
+### 5. Automation helper (optional)
+
 ```bash
 cd automation
 npm install          # installs Playwright + Chromium
@@ -187,39 +200,56 @@ npm install          # installs Playwright + Chromium
 
 ---
 
-## Configuration & Environment Variables
+## Configuration
 
-All variables have safe defaults for local use; override them in `.env` (Docker) or your shell.
+All config lives in `backend/src/main/resources/application.yml`. The repo ships
+`application.yml.example` as a template — copy it and fill in your values:
 
-| Variable | Description | Default |
-|---|---|---|
-| `DB_NAME` / `DB_USERNAME` / `DB_PASSWORD` | MySQL database & credentials | `jobcopilot` |
-| `DB_ROOT_PASSWORD` | MySQL root password (compose only) | `rootpassword` |
-| `DB_PORT` / `REDIS_PORT` | Exposed DB / Redis ports | `3306` / `6379` |
-| `BACKEND_PORT` / `FRONTEND_PORT` | Exposed app ports | `8080` / `3000` |
-| `JWT_SECRET` | HMAC secret, **≥ 32 bytes** | _override me_ |
-| `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_EMAIL` | Bootstrap admin login | `admin` / `admin123!` |
-| `CORS_ORIGINS` | Comma-separated allowed origins | `http://localhost:3000,http://localhost:5173` |
-| `SCHEDULER_ENABLED` | Enable background ingestion | `true` |
-| `SCHEDULER_CRON` | Spring cron (6 fields) | `0 */30 * * * *` |
-| `ADZUNA_ENABLED` / `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` | Adzuna provider | `false` |
-| `JSEARCH_ENABLED` / `JSEARCH_API_KEY` | JSearch (RapidAPI) provider | `false` |
-| `GREENHOUSE_ENABLED` / `GREENHOUSE_BOARDS` | Greenhouse boards (CSV) | `false` |
-| `LEVER_ENABLED` / `LEVER_COMPANIES` | Lever companies (CSV) | `false` |
-| `NOTIFY_EMAIL_ENABLED` / `MAIL_*` / `NOTIFY_EMAIL_TO` | Email notifications (SMTP) | `false` |
-| `NOTIFY_TELEGRAM_ENABLED` / `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | Telegram notifications | `false` |
-| `BROWSER_PATH` / `BROWSER_PROFILE_PATH` | Playwright browser & profile paths | _empty_ |
+```bash
+cd backend/src/main/resources
+cp application.yml.example application.yml
+```
 
-Most of these are also editable at runtime via **Settings** in the UI (secrets are masked).
+> **Never commit `application.yml`** — it contains secrets. It is gitignored.
+
+### Config Priority
+
+Settings resolve in this order (highest priority first):
+
+```
+1. Database (app_setting table)   ──▶ Admin panel runtime changes (Settings API)
+2. Environment variables          ──▶ Docker env / shell env (override yml defaults)
+3. application.yml                ──▶ Your local config file
+4. application.yml.example        ──▶ Safe defaults (tracked in git)
+```
+
+### Key Settings
+
+| Setting | Where | Default | Description |
+|---------|-------|---------|-------------|
+| `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USERNAME` / `DB_PASSWORD` | yml / env | `localhost:3306/jobcopilot` | MySQL connection |
+| `REDIS_HOST` / `REDIS_PORT` | yml / env | `localhost:6379` | Redis connection |
+| `JWT_SECRET` | yml | _must override_ | HMAC secret, **≥ 32 bytes** |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | yml | `admin` / `admin123!` | Bootstrap admin login |
+| `GREENHOUSE_ENABLED` / `GREENHOUSE_BOARDS` | yml / env | `true` / `airbnb,stripe` | Greenhouse boards (CSV) |
+| `LEVER_ENABLED` / `LEVER_COMPANIES` | yml / env | `true` / `netflix,spotify` | Lever companies (CSV) |
+| `REMOTEOK_ENABLED` | yml / env | `true` | RemoteOK (no key needed) |
+| `FINDWORK_ENABLED` / `FINDWORK_API_KEY` | yml / env | `false` | Findwork (free key) |
+| `NOTIFY_EMAIL_ENABLED` / `MAIL_*` / `NOTIFY_EMAIL_TO` | yml / env | `false` | Email notifications |
+| `SCHEDULER_CRON` | yml | `0 */30 * * * *` | Fetch frequency |
+
+Most settings are also editable at runtime via **Settings** in the UI (secrets are masked).
 
 ---
 
 ## Obtaining API Keys
 
-- **Adzuna** — register at <https://developer.adzuna.com/>. You receive an `app_id` and `app_key`.
-- **JSearch** — subscribe on RapidAPI: <https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch>. Use the `X-RapidAPI-Key`.
 - **Greenhouse** — no key needed. Use public board tokens (the slug in `boards.greenhouse.io/<token>`), e.g. `airbnb`.
 - **Lever** — no key needed. Use public company handles (the slug in `jobs.lever.co/<company>`), e.g. `netflix`.
+- **RemoteOK** — no key needed. Public API at `remoteok.com/api`.
+- **Findwork** — free API key from <https://findwork.dev/developers/>.
+- **Adzuna** — register at <https://developer.adzuna.com/>. You receive an `app_id` and `app_key`.
+- **JSearch** — deprecated (search endpoint removed). Disabled by default.
 - **Telegram** — create a bot with [@BotFather](https://t.me/BotFather) to get a bot token; get your
   `chat_id` (e.g. via [@userinfobot](https://t.me/userinfobot)).
 
@@ -299,8 +329,9 @@ Coverage spans layers:
 ## Deployment Guide
 
 1. **Provision** a host with Docker & Docker Compose.
-2. **Secrets:** set a strong `JWT_SECRET` (≥ 32 bytes) and `ADMIN_PASSWORD`; supply provider keys and
-   notification credentials in `.env`. Never commit `.env`.
+2. **Config:** copy `application.yml.example` to `application.yml` in `backend/src/main/resources/`.
+   Set a strong `JWT_SECRET` (≥ 32 bytes) and `ADMIN_PASSWORD`. Supply provider keys and
+   notification credentials.
 3. **Build & run:** `docker compose up -d --build`.
 4. **Reverse proxy / TLS:** front the `frontend` (port 80) with a TLS-terminating proxy (nginx,
    Caddy, Traefik). Update `CORS_ORIGINS` to your public origin.
@@ -318,7 +349,7 @@ Coverage spans layers:
 1. Add a value to `JobSourceType`.
 2. Implement `JobSourceAdapter` (extend `AbstractHttpJobSourceAdapter` for HTTP providers):
    implement `type()`, `validate()`, `fetchJobs()`, and `doNormalize()`.
-3. Add its configuration under `app.integration.<provider>` in `application.yml` (+ env vars).
+3. Add its configuration under `app.integration.<provider>` in `application.yml`.
 4. That's it — the ingestion pipeline auto-discovers the new adapter bean; no other code changes.
 
 ---

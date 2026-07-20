@@ -50,12 +50,12 @@ services:
         condition: service_healthy
     environment:
       DB_HOST: mysql
-      DB_PORT: 3306
+      DB_PORT: "3306"
       DB_NAME: ${DB_NAME:-jobcopilot}
       DB_USERNAME: ${DB_USERNAME:-jobcopilot}
       DB_PASSWORD: ${DB_PASSWORD:-jobcopilot}
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: "6379"
       JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-256-bit-secret-value-please-override}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123!}
@@ -63,17 +63,13 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}
       SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-true}
       SCHEDULER_CRON: ${SCHEDULER_CRON:-0 */30 * * * *}
-      # Provider credentials (optional; enable per provider)
-      ADZUNA_ENABLED: ${ADZUNA_ENABLED:-false}
-      ADZUNA_APP_ID: ${ADZUNA_APP_ID:-}
-      ADZUNA_APP_KEY: ${ADZUNA_APP_KEY:-}
-      JSEARCH_ENABLED: ${JSEARCH_ENABLED:-false}
-      JSEARCH_API_KEY: ${JSEARCH_API_KEY:-}
-      GREENHOUSE_ENABLED: ${GREENHOUSE_ENABLED:-false}
-      GREENHOUSE_BOARDS: ${GREENHOUSE_BOARDS:-}
-      LEVER_ENABLED: ${LEVER_ENABLED:-false}
-      LEVER_COMPANIES: ${LEVER_COMPANIES:-}
-      # Notifications (optional)
+      GREENHOUSE_ENABLED: ${GREENHOUSE_ENABLED:-true}
+      GREENHOUSE_BOARDS: ${GREENHOUSE_BOARDS:-airbnb,stripe}
+      LEVER_ENABLED: ${LEVER_ENABLED:-true}
+      LEVER_COMPANIES: ${LEVER_COMPANIES:-netflix,spotify}
+      REMOTEOK_ENABLED: ${REMOTEOK_ENABLED:-true}
+      FINDWORK_ENABLED: ${FINDWORK_ENABLED:-false}
+      FINDWORK_API_KEY: ${FINDWORK_API_KEY:-}
       NOTIFY_EMAIL_ENABLED: ${NOTIFY_EMAIL_ENABLED:-false}
       MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
       MAIL_PORT: ${MAIL_PORT:-587}

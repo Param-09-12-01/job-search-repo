@@ -8,6 +8,7 @@ import com.jobcopilot.entity.enums.JobSourceType;
 import com.jobcopilot.exception.IntegrationException;
 import com.jobcopilot.integration.AbstractHttpJobSourceAdapter;
 import com.jobcopilot.service.ProfileService;
+import com.jobcopilot.service.SettingsService;
 import com.jobcopilot.util.JsonListUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -29,11 +30,14 @@ public class JSearchAdapter extends AbstractHttpJobSourceAdapter {
 
     private final AppProperties.Integration.JSearch config;
     private final ProfileService profileService;
+    private final SettingsService settingsService;
 
-    public JSearchAdapter(RestClient restClient, AppProperties properties, ProfileService profileService) {
+    public JSearchAdapter(RestClient restClient, AppProperties properties, ProfileService profileService,
+                          SettingsService settingsService) {
         super(restClient);
         this.config = properties.getIntegration().getJsearch();
         this.profileService = profileService;
+        this.settingsService = settingsService;
     }
 
     @Override
@@ -43,12 +47,15 @@ public class JSearchAdapter extends AbstractHttpJobSourceAdapter {
 
     @Override
     public boolean validate() {
-        return config.isEnabled() && config.getApiKey() != null && !config.getApiKey().isBlank();
+        boolean enabled = settingsService.getBooleanValue("integration.jsearch.enabled", config.isEnabled());
+        String apiKey = settingsService.getValue("integration.jsearch.api-key", config.getApiKey());
+        return enabled && apiKey != null && !apiKey.isBlank();
     }
 
     @Override
     public List<Object> fetchJobs() {
         List<Object> raw = new ArrayList<>();
+        String apiKey = settingsService.getValue("integration.jsearch.api-key", config.getApiKey());
         String url = UriComponentsBuilder
                 .fromHttpUrl(config.getBaseUrl())
                 .path("/search")
@@ -60,7 +67,7 @@ public class JSearchAdapter extends AbstractHttpJobSourceAdapter {
         try {
             JsonNode body = restClient.get()
                     .uri(url)
-                    .header("X-RapidAPI-Key", config.getApiKey())
+                    .header("X-RapidAPI-Key", apiKey)
                     .header("X-RapidAPI-Host", config.getHost())
                     .retrieve()
                     .body(JsonNode.class);
@@ -69,7 +76,17 @@ public class JSearchAdapter extends AbstractHttpJobSourceAdapter {
             }
             JsonNode data = body.get("data");
             if (data != null && data.isArray()) {
-                data.forEach(raw::add);
+                for (JsonNode node : data) {
+                    // Filter by date (15 days)
+                    String dateStr = text(node, "job_posted_at_datetime_utc");
+                    if (dateStr != null) {
+                        var postedAt = parseIsoDate(dateStr);
+                        if (postedAt != null && postedAt.isBefore(java.time.LocalDateTime.now().minusDays(15))) {
+                            continue;
+                        }
+                    }
+                    raw.add(node);
+                }
             }
         } catch (IntegrationException e) {
             throw e;

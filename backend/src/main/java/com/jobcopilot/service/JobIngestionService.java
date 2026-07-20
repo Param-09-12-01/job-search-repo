@@ -114,7 +114,7 @@ public class JobIngestionService {
                 posting.getLocation() == null ? "N/A" : posting.getLocation(),
                 posting.getScore(),
                 posting.getUrl());
-        return notificationService.dispatch(title, message, posting) > 0 ? 1 : 0;
+        return notificationService.dispatchHighScore(title, message, posting) > 0 ? 1 : 0;
     }
 
     private Posting toPosting(NormalizedJob job, String fingerprint, int score) {

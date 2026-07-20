@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.jobcopilot.config.AppProperties;
 import com.jobcopilot.dto.posting.NormalizedJob;
 import com.jobcopilot.entity.enums.JobSourceType;
+import com.jobcopilot.entity.Profile;
 import com.jobcopilot.integration.AbstractHttpJobSourceAdapter;
+import com.jobcopilot.service.ProfileService;
+import com.jobcopilot.service.SettingsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -23,12 +26,18 @@ import java.util.List;
 public class LeverAdapter extends AbstractHttpJobSourceAdapter {
 
     private static final String SOURCE = JobSourceType.LEVER.name();
+    private static final int MAX_DAYS_OLD = 15;
 
     private final AppProperties.Integration.Lever config;
+    private final SettingsService settingsService;
+    private final ProfileService profileService;
 
-    public LeverAdapter(RestClient restClient, AppProperties properties) {
+    public LeverAdapter(RestClient restClient, AppProperties properties,
+                        SettingsService settingsService, ProfileService profileService) {
         super(restClient);
         this.config = properties.getIntegration().getLever();
+        this.settingsService = settingsService;
+        this.profileService = profileService;
     }
 
     @Override
@@ -38,24 +47,48 @@ public class LeverAdapter extends AbstractHttpJobSourceAdapter {
 
     @Override
     public boolean validate() {
-        return config.isEnabled() && !companies().isEmpty();
+        boolean enabled = settingsService.getBooleanValue("integration.lever.enabled", config.isEnabled());
+        String companiesCsv = settingsService.getValue("integration.lever.companies", config.getCompanies());
+        return enabled && !companies(companiesCsv).isEmpty();
     }
 
     @Override
     public List<Object> fetchJobs() {
+        Profile profile = profileService.getProfileEntityOrNull();
         List<Object> raw = new ArrayList<>();
-        for (String company : companies()) {
+        String companiesCsv = settingsService.getValue("integration.lever.companies", config.getCompanies());
+        for (String company : companies(companiesCsv)) {
             String url = "%s/%s?mode=json".formatted(config.getBaseUrl(), company);
             try {
                 JsonNode body = getJson(url);
                 if (body.isArray()) {
-                    body.forEach(node -> raw.add(new CompanyNode(company, node)));
+                    for (JsonNode node : body) {
+                        String title = text(node, "text");
+                        String descPlain = stripHtml(text(node, "descriptionPlain"));
+                        String descHtml = stripHtml(text(node, "description"));
+                        String description = descPlain != null ? descPlain : descHtml;
+                        // Match by title OR by keywords in description
+                        if (!matchesProfileTitles(title, profile) && !matchesProfileKeywords(title, description, profile)) {
+                            continue;
+                        }
+                        // Filter by date (15 days)
+                        JsonNode createdAt = node.get("createdAt");
+                        if (createdAt != null && createdAt.isNumber()) {
+                            var postedAt = java.time.LocalDateTime.ofEpochSecond(
+                                    createdAt.asLong() / 1000, 0, java.time.ZoneOffset.UTC);
+                            if (postedAt.isBefore(java.time.LocalDateTime.now().minusDays(MAX_DAYS_OLD))) {
+                                continue;
+                            }
+                        }
+                        raw.add(new CompanyNode(company, node));
+                    }
                 }
             } catch (Exception e) {
                 log.warn("Lever company '{}' fetch failed: {}", company, e.getMessage());
             }
         }
-        log.info("Lever fetched {} raw postings across {} company(ies)", raw.size(), companies().size());
+        log.info("Lever fetched {} postings across {} company(ies) (filtered by profile + {} day limit)",
+                raw.size(), companies(companiesCsv).size(), MAX_DAYS_OLD);
         return raw;
     }
 
@@ -107,11 +140,11 @@ public class LeverAdapter extends AbstractHttpJobSourceAdapter {
         return java.time.LocalDateTime.ofEpochSecond(millis / 1000, 0, java.time.ZoneOffset.UTC);
     }
 
-    private List<String> companies() {
-        if (config.getCompanies() == null || config.getCompanies().isBlank()) {
+    private List<String> companies(String companiesCsv) {
+        if (companiesCsv == null || companiesCsv.isBlank()) {
             return List.of();
         }
-        return Arrays.stream(config.getCompanies().split(","))
+        return Arrays.stream(companiesCsv.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toList();

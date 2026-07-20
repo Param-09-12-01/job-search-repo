@@ -6,6 +6,7 @@ import com.jobcopilot.config.AppProperties;
 import com.jobcopilot.dto.posting.NormalizedJob;
 import com.jobcopilot.entity.enums.JobSourceType;
 import com.jobcopilot.service.ProfileService;
+import com.jobcopilot.service.SettingsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -28,7 +29,8 @@ class JSearchAdapterTest {
     void setUp() {
         RestClient restClient = Mockito.mock(RestClient.class);
         ProfileService profileService = Mockito.mock(ProfileService.class);
-        adapter = new JSearchAdapter(restClient, new AppProperties(), profileService);
+        SettingsService settingsService = Mockito.mock(SettingsService.class);
+        adapter = new JSearchAdapter(restClient, new AppProperties(), profileService, settingsService);
     }
 
     @Test

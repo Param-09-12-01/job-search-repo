@@ -8,5 +8,7 @@ public enum JobSourceType {
     ADZUNA,
     JSEARCH,
     GREENHOUSE,
-    LEVER
+    LEVER,
+    REMOTEOK,
+    FINDWORK
 }

@@ -1,5 +1,6 @@
 package com.jobcopilot.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.jobcopilot.entity.enums.SchedulerRunStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -38,9 +39,11 @@ public class SchedulerLog {
     private SchedulerRunStatus status;
 
     @Column(name = "started_at", nullable = false)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime startedAt;
 
     @Column(name = "finished_at")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime finishedAt;
 
     @Column(name = "fetched_count", nullable = false)

@@ -30,6 +30,7 @@ public class SettingsService {
             "scheduler.enabled",
             "notification.score-threshold",
             "notification.email.enabled",
+            "notification.email.notify-on-match",
             "notification.email.to",
             "notification.telegram.enabled",
             "notification.telegram.bot-token",
@@ -37,18 +38,26 @@ public class SettingsService {
             "automation.browser-path",
             "automation.browser-profile-path",
             "profile.resume-path",
+            "integration.adzuna.enabled",
             "integration.adzuna.app-id",
             "integration.adzuna.app-key",
+            "integration.jsearch.enabled",
             "integration.jsearch.api-key",
+            "integration.greenhouse.enabled",
             "integration.greenhouse.boards",
-            "integration.lever.companies"
+            "integration.lever.enabled",
+            "integration.lever.companies",
+            "integration.remoteok.enabled",
+            "integration.findwork.enabled",
+            "integration.findwork.api-key"
     );
 
     /** Keys whose values must be masked on read. */
     private static final Set<String> SECRET_KEYS = Set.of(
             "notification.telegram.bot-token",
             "integration.adzuna.app-key",
-            "integration.jsearch.api-key"
+            "integration.jsearch.api-key",
+            "integration.findwork.api-key"
     );
 
     private final AppSettingRepository settingRepository;

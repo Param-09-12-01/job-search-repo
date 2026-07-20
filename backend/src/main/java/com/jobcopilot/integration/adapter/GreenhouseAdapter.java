@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.jobcopilot.config.AppProperties;
 import com.jobcopilot.dto.posting.NormalizedJob;
 import com.jobcopilot.entity.enums.JobSourceType;
+import com.jobcopilot.entity.Profile;
 import com.jobcopilot.integration.AbstractHttpJobSourceAdapter;
+import com.jobcopilot.service.ProfileService;
+import com.jobcopilot.service.SettingsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -23,12 +26,18 @@ import java.util.List;
 public class GreenhouseAdapter extends AbstractHttpJobSourceAdapter {
 
     private static final String SOURCE = JobSourceType.GREENHOUSE.name();
+    private static final int MAX_DAYS_OLD = 15;
 
     private final AppProperties.Integration.Greenhouse config;
+    private final SettingsService settingsService;
+    private final ProfileService profileService;
 
-    public GreenhouseAdapter(RestClient restClient, AppProperties properties) {
+    public GreenhouseAdapter(RestClient restClient, AppProperties properties,
+                             SettingsService settingsService, ProfileService profileService) {
         super(restClient);
         this.config = properties.getIntegration().getGreenhouse();
+        this.settingsService = settingsService;
+        this.profileService = profileService;
     }
 
     @Override
@@ -38,26 +47,46 @@ public class GreenhouseAdapter extends AbstractHttpJobSourceAdapter {
 
     @Override
     public boolean validate() {
-        return config.isEnabled() && !boards().isEmpty();
+        boolean enabled = settingsService.getBooleanValue("integration.greenhouse.enabled", config.isEnabled());
+        String boardsCsv = settingsService.getValue("integration.greenhouse.boards", config.getBoards());
+        return enabled && !boards(boardsCsv).isEmpty();
     }
 
     @Override
     public List<Object> fetchJobs() {
+        Profile profile = profileService.getProfileEntityOrNull();
         List<Object> raw = new ArrayList<>();
-        for (String board : boards()) {
+        String boardsCsv = settingsService.getValue("integration.greenhouse.boards", config.getBoards());
+        for (String board : boards(boardsCsv)) {
             String url = "%s/%s/jobs?content=true".formatted(config.getBaseUrl(), board);
             try {
                 JsonNode body = getJson(url);
                 JsonNode jobs = body.get("jobs");
                 if (jobs != null && jobs.isArray()) {
-                    jobs.forEach(node -> raw.add(new BoardNode(board, node)));
+                    for (JsonNode node : jobs) {
+                        String title = text(node, "title");
+                        String description = stripHtml(text(node, "content"));
+                        // Match by title OR by keywords in description
+                        if (!matchesProfileTitles(title, profile) && !matchesProfileKeywords(title, description, profile)) {
+                            continue;
+                        }
+                        // Filter by date (15 days)
+                        String dateStr = text(node, "updated_at");
+                        if (dateStr != null) {
+                            var postedAt = parseIsoDate(dateStr);
+                            if (postedAt != null && postedAt.isBefore(java.time.LocalDateTime.now().minusDays(MAX_DAYS_OLD))) {
+                                continue;
+                            }
+                        }
+                        raw.add(new BoardNode(board, node));
+                    }
                 }
             } catch (Exception e) {
-                // Isolate per-board failures so one bad board doesn't sink the rest.
                 log.warn("Greenhouse board '{}' fetch failed: {}", board, e.getMessage());
             }
         }
-        log.info("Greenhouse fetched {} raw postings across {} board(s)", raw.size(), boards().size());
+        log.info("Greenhouse fetched {} postings across {} board(s) (filtered by profile + {} day limit)",
+                raw.size(), boards(boardsCsv).size(), MAX_DAYS_OLD);
         return raw;
     }
 
@@ -97,11 +126,11 @@ public class GreenhouseAdapter extends AbstractHttpJobSourceAdapter {
         return normalized;
     }
 
-    private List<String> boards() {
-        if (config.getBoards() == null || config.getBoards().isBlank()) {
+    private List<String> boards(String boardsCsv) {
+        if (boardsCsv == null || boardsCsv.isBlank()) {
             return List.of();
         }
-        return Arrays.stream(config.getBoards().split(","))
+        return Arrays.stream(boardsCsv.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toList();

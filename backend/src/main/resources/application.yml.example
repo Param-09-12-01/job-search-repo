@@ -1,0 +1,185 @@
+# ============================================================================
+# Application Configuration Reference
+# ============================================================================
+# This file documents all available configuration options.
+# Actual values come from environment variables (see .env.example).
+# Spring Boot resolves ${ENV_VAR:default} placeholders at startup.
+
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /
+  error:
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: job-search-copilot
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:jobcopilot}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      pool-name: JobCopilotHikariPool
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+    show-sql: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+# ----------------------------------------------------------------------------
+# Application-specific configuration
+# ----------------------------------------------------------------------------
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:change-me-to-a-long-random-256-bit-secret-value-please-override-in-prod}
+      access-token-ttl-minutes: ${JWT_ACCESS_TTL:60}
+      refresh-token-ttl-days: ${JWT_REFRESH_TTL:7}
+      issuer: job-search-copilot
+    bootstrap-admin:
+      username: ${ADMIN_USERNAME:admin}
+      password: ${ADMIN_PASSWORD:admin123!}
+      email: ${ADMIN_EMAIL:admin@jobcopilot.local}
+    rate-limit:
+      capacity: ${RATE_LIMIT_CAPACITY:100}
+      refill-tokens: ${RATE_LIMIT_REFILL:100}
+      refill-duration-seconds: ${RATE_LIMIT_WINDOW:60}
+    cors:
+      allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
+
+  scheduler:
+    enabled: ${SCHEDULER_ENABLED:true}
+    cron: ${SCHEDULER_CRON:0 */30 * * * *}
+    zone: UTC
+
+  scoring:
+    weights:
+      title-match: 25
+      location-match: 10
+      remote-match: 10
+      salary-match: 15
+      required-keywords: 20
+      experience-match: 10
+      freshness: 10
+    blacklist-penalty: 100
+
+  notification:
+    score-threshold: ${NOTIFY_THRESHOLD:50}
+    email:
+      enabled: ${NOTIFY_EMAIL_ENABLED:false}
+      from: ${NOTIFY_EMAIL_FROM:copilot@jobcopilot.local}
+      to: ${NOTIFY_EMAIL_TO:}
+      notify-on-match: ${NOTIFY_ON_MATCH:false}
+    telegram:
+      enabled: ${NOTIFY_TELEGRAM_ENABLED:false}
+      bot-token: ${TELEGRAM_BOT_TOKEN:}
+      chat-id: ${TELEGRAM_CHAT_ID:}
+      api-base-url: https://api.telegram.org
+
+  integration:
+    adzuna:
+      enabled: ${ADZUNA_ENABLED:false}
+      base-url: https://api.adzuna.com/v1/api
+      app-id: ${ADZUNA_APP_ID:}
+      app-key: ${ADZUNA_APP_KEY:}
+      country: ${ADZUNA_COUNTRY:us}
+    jsearch:
+      enabled: ${JSEARCH_ENABLED:false}
+      base-url: https://jsearch.p.rapidapi.com
+      api-key: ${JSEARCH_API_KEY:}
+      host: jsearch.p.rapidapi.com
+    greenhouse:
+      enabled: ${GREENHOUSE_ENABLED:false}
+      base-url: https://boards-api.greenhouse.io/v1/boards
+      boards: ${GREENHOUSE_BOARDS:}
+    lever:
+      enabled: ${LEVER_ENABLED:false}
+      base-url: https://api.lever.co/v0/postings
+      companies: ${LEVER_COMPANIES:}
+    remoteok:
+      enabled: ${REMOTEOK_ENABLED:true}
+      base-url: https://remoteok.com/api
+    findwork:
+      enabled: ${FINDWORK_ENABLED:false}
+      base-url: https://findwork.dev/api
+      api-key: ${FINDWORK_API_KEY:}
+
+  automation:
+    browser-executable-path: ${BROWSER_PATH:}
+    browser-profile-path: ${BROWSER_PROFILE_PATH:}
+    helper-script-path: ${AUTOMATION_HELPER:automation/prepare-application.mjs}
+    headless: ${AUTOMATION_HEADLESS:false}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+
+logging:
+  level:
+    root: INFO
+    com.jobcopilot: DEBUG
+    org.hibernate.SQL: WARN

@@ -3,16 +3,26 @@
 *.log
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
 
-# Secrets
-.env
+# Backend — application.yml contains secrets (API keys, passwords)
+backend/src/main/resources/application.yml
 
-# Backend
+# Backend build
 backend/target/
+backend/*.jar
 
 # Frontend
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/
 
 # Automation
 automation/node_modules/
+
+# Docker override
+docker-compose.override.yml
+
+.claude/

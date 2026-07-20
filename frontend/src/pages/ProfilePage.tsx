@@ -91,8 +91,7 @@ export function ProfilePage() {
   });
 
   const onSubmit = handleSubmit((formValues) => {
-    const parsed = schema.parse(formValues);
-    mutation.mutate(parsed as ProfileRequest);
+    mutation.mutate(formValues as ProfileRequest);
   });
 
   if (isLoading) {
