@@ -249,7 +249,14 @@ POST /api/auth/refresh { "refreshToken": "eyJ..." }
 
 ```
 Matched ──▶ Saved ──▶ Applied ──▶ Viewed ──▶ Interview ──▶ Offer
-                                                         └──▶ Rejected
+              │                     │            │              │
+              │                     │            │              └──▶ Rejected
+              │                     │            ├──▶ Ghosted by Me
+              │                     │            └──▶ Ghosted by Company (auto)
+              │                     ├──▶ Ghosted by Me
+              │                     └──▶ Ghosted by Company (auto)
+              ├──▶ Ghosted by Me
+              └──▶ Ghosted by Company (auto)
 ```
 
 ### Flow:
@@ -260,6 +267,14 @@ Matched ──▶ Saved ──▶ Applied ──▶ Viewed ──▶ Interview �
 5. **Interview** - Interview scheduled
 6. **Offer** - Job offer received
 7. **Rejected** - Application rejected
+8. **Ghosted by Me** - User manually marks application as ghosted (drag to "Ghosted by Me" column)
+9. **Ghosted by Company** - Automatically set by `GhostingService` when an application stays in "Applied" for 7+ days
+
+### Ghosting Detection (Automatic)
+- `GhostingService` runs once at startup in a **daemon thread** spawned by `ApplicationStartupRunner`
+- Queries all applications in `APPLIED` status where `appliedDate < now - 7 days`
+- Bulk-updates them to `GHOSTED_BY_COMPANY` status in a single query
+- Runs on every application startup, completely unattended
 
 ---
 

@@ -3,10 +3,12 @@ package com.jobcopilot.repository;
 import com.jobcopilot.entity.Application;
 import com.jobcopilot.entity.enums.ApplicationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -24,6 +26,13 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     List<Application> findByStatus(ApplicationStatus status);
 
     long countByStatus(ApplicationStatus status);
+
+    @Query("SELECT a FROM Application a WHERE a.status = 'APPLIED' AND a.appliedDate IS NOT NULL AND a.appliedDate < :cutoff")
+    List<Application> findStaleApplied(@Param("cutoff") LocalDateTime cutoff);
+
+    @Modifying
+    @Query("UPDATE Application a SET a.status = 'GHOSTED_BY_COMPANY' WHERE a.id IN :ids")
+    int ghostByCompany(@Param("ids") List<Long> ids);
 
     @Query("select a.status as status, count(a) as count from Application a group by a.status")
     List<StatusCount> countGroupedByStatus();

@@ -9,7 +9,9 @@ export type ApplicationStatus =
   | 'VIEWED'
   | 'INTERVIEW'
   | 'OFFER'
-  | 'REJECTED';
+  | 'REJECTED'
+  | 'GHOSTED_BY_USER'
+  | 'GHOSTED_BY_COMPANY';
 export type ApplicationMethod = 'MANUAL' | 'PREPARED' | 'EMAIL' | 'REFERRAL';
 
 export interface ManualApplicationRequest {

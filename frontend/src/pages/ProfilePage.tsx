@@ -170,7 +170,7 @@ export function ProfilePage() {
             <CardTitle>Targeting</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Field label="Minimum salary">
+            <Field label="Minimum salary (yearly)">
               <Input type="number" {...register('salaryMinimum')} placeholder="80000" />
             </Field>
             <Field label="Remote preference">

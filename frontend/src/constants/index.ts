@@ -12,6 +12,8 @@ export const APPLICATION_STATUSES = [
   'INTERVIEW',
   'OFFER',
   'REJECTED',
+  'GHOSTED_BY_USER',
+  'GHOSTED_BY_COMPANY',
 ] as const;
 
 export const KANBAN_COLUMNS: { key: (typeof APPLICATION_STATUSES)[number]; label: string }[] = [
@@ -22,6 +24,8 @@ export const KANBAN_COLUMNS: { key: (typeof APPLICATION_STATUSES)[number]; label
   { key: 'INTERVIEW', label: 'Interview' },
   { key: 'OFFER', label: 'Offer' },
   { key: 'REJECTED', label: 'Rejected' },
+  { key: 'GHOSTED_BY_USER', label: 'Ghosted by Me' },
+  { key: 'GHOSTED_BY_COMPANY', label: 'Ghosted by Company' },
 ];
 
 export const REMOTE_PREFERENCES = ['REMOTE', 'HYBRID', 'ONSITE', 'ANY'] as const;

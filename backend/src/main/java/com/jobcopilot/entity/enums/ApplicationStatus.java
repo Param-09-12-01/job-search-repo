@@ -10,5 +10,7 @@ public enum ApplicationStatus {
     VIEWED,
     INTERVIEW,
     OFFER,
-    REJECTED
+    REJECTED,
+    GHOSTED_BY_USER,
+    GHOSTED_BY_COMPANY
 }

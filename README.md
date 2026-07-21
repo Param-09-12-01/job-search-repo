@@ -41,7 +41,7 @@ tracks them through a Kanban pipeline, and notifies you of high matches via Emai
 - **Cursor-based pagination** — the run-jobs dialog loads 20 items at a time via keyset cursor; scroll down to fetch more.
 - **Dashboard** with statistic cards, recent notifications, and recent scheduler runs.
 - **Job list** with search, filtering, sorting, pagination, save, dismiss, prepare, and track.
-- **Application tracker** — a drag-and-drop Kanban board (Matched → Saved → Applied → Viewed → Interview → Offer → Rejected). Add manual entries for jobs you applied to outside the platform.
+- **Application tracker** — a drag-and-drop Kanban board (Matched → Saved → Applied → Viewed → Interview → Offer → Rejected → Ghosted by Me / Ghosted by Company). Add manual entries for jobs you applied to outside the platform. Applications stuck in "Applied" for 7+ days auto-move to "Ghosted by Company" on startup.
 - **Prepare Application** — Playwright fills known fields in your own browser profile, then stops.
 - **Notifications** — Email + Telegram with a configurable score threshold.
 - **Admin settings** — API keys, scheduler frequency, notification config, score threshold, resume & browser paths.
