@@ -32,9 +32,13 @@ tracks them through a Kanban pipeline, and notifies you of high matches via Emai
 
 ## Features
 
-- **Multi-source aggregation** via a pluggable connector architecture (Greenhouse, Lever, RemoteOK, Findwork, Adzuna).
+- **Multi-source aggregation** via a pluggable connector architecture (Greenhouse, Lever, RemoteOK, Findwork, Adzuna, JSearch).
 - **Weighted 0–100 scoring** across title, location, remote, salary, keywords, experience, freshness, with a company blacklist.
-- **Background scheduler** that fetches, de-duplicates, scores, stores, and notifies on a configurable cron.
+- **Background scheduler** that fetches, de-duplicates, scores, stores, and notifies on a configurable cron (every 30 min by default).
+- **Per-source fetch tracking** — each source records its latest `postedAt` timestamp so only distinct daily jobs are fetched on subsequent runs.
+- **Soft-delete archiving** — jobs older than 15 days are automatically archived (hidden from UI) on every scheduler run.
+- **scheduler_run_id link** — every posting records which scheduler run created it; click any run in the UI to see its jobs.
+- **Cursor-based pagination** — the run-jobs dialog loads 20 items at a time via keyset cursor; scroll down to fetch more.
 - **Dashboard** with statistic cards, recent notifications, and recent scheduler runs.
 - **Job list** with search, filtering, sorting, pagination, save, dismiss, prepare, and track.
 - **Application tracker** — a drag-and-drop Kanban board (Matched → Saved → Applied → Viewed → Interview → Offer → Rejected).
@@ -42,7 +46,7 @@ tracks them through a Kanban pipeline, and notifies you of high matches via Emai
 - **Notifications** — Email + Telegram with a configurable score threshold.
 - **Admin settings** — API keys, scheduler frequency, notification config, score threshold, resume & browser paths.
 - **Security** — JWT auth, BCrypt password hashing, input validation, global exception handling, rate limiting, audit logging.
-- **Modern UI** — responsive, dark mode, animations (Framer Motion), loading skeletons, toasts, error boundaries, confirmation dialogs.
+- **Modern UI** — responsive, dark mode, animations (Framer Motion), loading skeletons, toasts, error boundaries, confirmation dialogs, live RUNNING status spinner.
 
 ---
 
@@ -304,7 +308,7 @@ Interactive docs: **`/swagger-ui.html`**. All routes require a Bearer JWT except
 | Jobs | `GET /api/jobs`, `GET /api/jobs/{id}`, `POST /api/jobs/{id}/save`, `DELETE /api/jobs/{id}/save`, `POST /api/jobs/{id}/dismiss`, `POST /api/jobs/{id}/prepare` |
 | Applications | `GET /api/applications`, `GET /api/applications/board`, `POST`, `PATCH /{id}`, `DELETE /{id}` |
 | Notifications | `GET /api/notifications`, `GET /api/notifications/unread-count`, `PATCH /{id}/read` |
-| Scheduler | `GET /api/scheduler/logs`, `POST /api/scheduler/run` |
+| Scheduler | `GET /api/scheduler/logs`, `POST /api/scheduler/run`, `GET /api/scheduler/logs/{id}/jobs?cursor=&size=` |
 | Settings | `GET/PUT /api/settings` |
 | Dashboard | `GET /api/dashboard` |
 

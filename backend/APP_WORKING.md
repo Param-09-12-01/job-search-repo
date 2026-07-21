@@ -30,15 +30,19 @@ Scheduler (cron) / Manual trigger (POST /api/scheduler/run)
     │
     ▼
 JobFetchRunner.runOnce()
-    │  - Creates a SchedulerLog entry (RUNNING)
+    │  - Saves RUNNING status in its own TransactionTemplate flush
     │  - AtomicBoolean guard prevents overlapping runs
     │
     ▼
-JobIngestionService.ingest()
+JobIngestionService.ingest(schedulerRunId)
     │
     ├── For each enabled JobSourceAdapter:
     │     │
     │     ├── adapter.validate() ──▶ Is enabled? Has API keys?
+    │     │
+    │     ├── Look up source_fetch_state:
+    │     │     ├── If lastPostedAt exists ──▶ fetchJobs(since)
+    │     │     └── If not ──▶ fetchJobs() (full fetch, no date filter)
     │     │
     │     ├── adapter.fetchJobs() ──▶ HTTP call to external API
     │     │     │
@@ -46,21 +50,28 @@ JobIngestionService.ingest()
     │     │     ├── Lever: GET https://api.lever.co/v0/postings/{company}
     │     │     ├── RemoteOK: GET https://remoteok.com/api
     │     │     ├── Findwork: GET https://findwork.dev/api/jobs/ (requires API key)
-    │     │     └── Adzuna:  GET https://api.adzuna.com/v1/api/jobs/{country}/search/1?...
+    │     │     ├── Adzuna:  GET https://api.adzuna.com/v1/api/jobs/{country}/search/1?...
+    │     │     └── JSearch: GET https://jsearch.p.rapidapi.com/search-v2?posted=...
     │     │
     │     ├── adapter.normalize(raw) ──▶ Map to NormalizedJob records
+    │     │
+    │     ├── Track maxPostedAt across normalized jobs
     │     │
     │     └── Per normalized job:
     │           ├── Compute SHA-256 fingerprint (title|company|location)
     │           ├── Skip if fingerprint exists in DB (dedup)
+    │           ├── Skip if source+externalId exists in DB (dedup)
     │           ├── JobScoringService.score(job, profile) ──▶ 0-100 score
-    │           ├── Save Posting to database
+    │           ├── Save Posting to database (with schedulerRunId)
     │           └── If score >= threshold:
     │                 └── NotificationService.dispatchHighScore(...)
     │                       ├── Check "notification.email.notify-on-match" flag
     │                       ├── Check each channel's isEnabled()
     │                       ├── Send via Email / Telegram
     │                       └── Persist Notification record
+    │
+    ├── Update source_fetch_state with maxPostedAt (distinct daily fetch)
+    ├── archiveOldJobs() ──▶ soft-delete postings older than 15 days
     │
     ▼
 SchedulerLog updated (SUCCESS/FAILED + counts)
@@ -169,11 +180,14 @@ All settings can be changed at runtime via the admin panel (`PUT /api/settings`)
 | `notification.telegram.enabled` | `false` | Enable Telegram notifications |
 | `integration.greenhouse.enabled` | `false` | Enable Greenhouse job source |
 | `integration.lever.enabled` | `false` | Enable Lever job source |
-| `integration.remoteok.enabled` | `true` | Enable RemoteOK job source |
+| `integration.remoteok.enabled` | `false` | Enable RemoteOK job source |
 | `integration.findwork.enabled` | `false` | Enable Findwork job source |
 | `integration.findwork.api-key` | (empty) | Findwork API key |
-| `integration.jsearch.enabled` | `false` | Enable JSearch (deprecated) |
+| `integration.jsearch.enabled` | `false` | Enable JSearch |
+| `integration.jsearch.api-key` | (empty) | JSearch RapidAPI key |
 | `integration.adzuna.enabled` | `false` | Enable Adzuna job source |
+| `integration.adzuna.app-id` | (empty) | Adzuna app ID |
+| `integration.adzuna.app-key` | (empty) | Adzuna app key |
 
 ### Feature Flag Flow for Email Notifications
 
@@ -286,8 +300,9 @@ Matched ──▶ Saved ──▶ Applied ──▶ Viewed ──▶ Interview �
 | PATCH | `/api/notifications/{id}/read` | Auth | Mark as read |
 | GET | `/api/profile` | Auth | Get user profile |
 | PUT | `/api/profile` | Auth | Update profile |
-| GET | `/api/scheduler/logs` | Auth | Scheduler run history |
+| GET | `/api/scheduler/logs` | Auth | Scheduler run history (offset paginated) |
 | POST | `/api/scheduler/run` | ADMIN | Trigger manual ingestion |
+| GET | `/api/scheduler/logs/{id}/jobs` | Auth | Jobs fetched in a run (cursor-paginated: `?cursor=&size=20`) |
 | GET | `/api/settings` | Auth | Get all settings |
 | PUT | `/api/settings` | ADMIN | Update settings |
 
@@ -312,8 +327,12 @@ This means: **DB settings always override `.env`**. If you set `ADZUNA_ENABLED=t
 | File | Purpose |
 |------|---------|
 | `JobFetchScheduler.java` | Cron trigger |
-| `JobFetchRunner.java` | Run guard + logging |
-| `JobIngestionService.java` | Core pipeline orchestration |
+| `JobFetchRunner.java` | Run guard + logging (TransactionTemplate for RUNNING visibility) |
+| `JobIngestionService.java` | Core pipeline orchestration (per-source fetch tracking, archive) |
+| `PostingService.java` | Posting queries (cursor-based pagination for run jobs) |
+| `PostingSpecifications.java` | JPA specifications (notArchived filter) |
+| `SourceFetchState.java` | Entity tracking per-source lastPostedAt for distinct daily fetches |
+| `CursorPageResponse.java` | Generic cursor-based pagination DTO |
 | `JobScoringService.java` | Score calculation |
 | `NotificationService.java` | Notification dispatch + high-score gating |
 | `EmailNotificationSender.java` | SMTP email delivery |
@@ -325,4 +344,5 @@ This means: **DB settings always override `.env`**. If you set `ADZUNA_ENABLED=t
 | `LeverAdapter.java` | Lever postings integration |
 | `RemoteOkAdapter.java` | RemoteOK public API integration |
 | `FindworkAdapter.java` | Findwork API integration |
+| `JSearchAdapter.java` | JSearch RapidAPI integration (supports `posted` param) |
 | `AbstractHttpJobSourceAdapter.java` | Base adapter with shared helpers |

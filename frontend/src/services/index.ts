@@ -2,6 +2,7 @@ import { api } from './api';
 import type {
   Application,
   ApplicationStatus,
+  CursorPageResponse,
   Dashboard,
   NotificationItem,
   PageResponse,
@@ -90,8 +91,8 @@ export const schedulerService = {
       .get<PageResponse<SchedulerLog>>('/scheduler/logs', { params: { page, size } })
       .then((r) => r.data),
   runNow: () => api.post<SchedulerLog>('/scheduler/run').then((r) => r.data),
-  jobsForRun: (runId: number) =>
-    api.get<Posting[]>('/scheduler/logs/' + runId + '/jobs').then((r) => r.data),
+  jobsForRun: (runId: number, cursor?: string, size = 20) =>
+    api.get<CursorPageResponse<Posting>>('/scheduler/logs/' + runId + '/jobs', { params: { cursor, size } }).then((r) => r.data),
 };
 
 // --- Settings -------------------------------------------------------------------------------

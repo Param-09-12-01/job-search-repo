@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useRef, useEffect } from 'react';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Play, Loader2, ExternalLink, ChevronRight } from 'lucide-react';
 import { schedulerService } from '@/services';
 import { extractErrorMessage } from '@/services/api';
@@ -23,11 +23,36 @@ function duration(start: string, end?: string): string {
 }
 
 function RunJobsDialog({ run, open, onClose }: { run: SchedulerLog; open: boolean; onClose: () => void }) {
-  const { data: jobs, isLoading } = useQuery({
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
     queryKey: ['scheduler', 'run', run.id, 'jobs'],
-    queryFn: () => schedulerService.jobsForRun(run.id),
+    queryFn: ({ pageParam }) => schedulerService.jobsForRun(run.id, pageParam, 30),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
     enabled: open,
   });
+
+  const allJobs = data?.pages.flatMap((p) => p.content) ?? [];
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open || !sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: '600px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [open, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -43,9 +68,9 @@ function RunJobsDialog({ run, open, onClose }: { run: SchedulerLog; open: boolea
               <Skeleton key={i} className="h-12" />
             ))}
           </div>
-        ) : jobs && jobs.length > 0 ? (
+        ) : allJobs.length > 0 ? (
           <div className="divide-y">
-            {jobs.map((job) => (
+            {allJobs.map((job) => (
               <div key={job.id} className="flex items-start gap-3 py-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -68,6 +93,15 @@ function RunJobsDialog({ run, open, onClose }: { run: SchedulerLog; open: boolea
                 </Badge>
               </div>
             ))}
+            <div ref={sentinelRef} className="py-4 text-center text-sm text-muted-foreground">
+              {isFetchingNextPage ? (
+                <Loader2 className="h-4 w-4 animate-spin inline mr-1" />
+              ) : hasNextPage ? (
+                'Scroll for more'
+              ) : allJobs.length > 20 ? (
+                'All jobs loaded'
+              ) : null}
+            </div>
           </div>
         ) : (
           <p className="py-8 text-center text-muted-foreground">No jobs were stored in this run.</p>

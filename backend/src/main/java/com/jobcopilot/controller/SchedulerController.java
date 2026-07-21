@@ -1,5 +1,6 @@
 package com.jobcopilot.controller;
 
+import com.jobcopilot.dto.common.CursorPageResponse;
 import com.jobcopilot.dto.common.PageResponse;
 import com.jobcopilot.dto.posting.PostingResponse;
 import com.jobcopilot.dto.scheduler.SchedulerLogResponse;
@@ -51,8 +52,11 @@ public class SchedulerController {
     }
 
     @GetMapping("/logs/{id}/jobs")
-    @Operation(summary = "List postings fetched during a specific scheduler run")
-    public ResponseEntity<List<PostingResponse>> jobsForRun(@PathVariable Long id) {
-        return ResponseEntity.ok(postingService.getBySchedulerRunId(id));
+    @Operation(summary = "List postings fetched during a specific scheduler run (cursor-based)")
+    public ResponseEntity<CursorPageResponse<PostingResponse>> jobsForRun(
+            @PathVariable Long id,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(postingService.getBySchedulerRunId(id, cursor, size));
     }
 }

@@ -128,6 +128,13 @@ export interface PageResponse<T> {
   last: boolean;
 }
 
+export interface CursorPageResponse<T> {
+  content: T[];
+  nextCursor?: string;
+  hasMore: boolean;
+  size: number;
+}
+
 export interface Settings {
   values: Record<string, string>;
 }

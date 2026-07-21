@@ -1,5 +1,6 @@
 package com.jobcopilot.service;
 
+import com.jobcopilot.dto.common.CursorPageResponse;
 import com.jobcopilot.dto.common.PageResponse;
 import com.jobcopilot.dto.posting.DismissJobRequest;
 import com.jobcopilot.dto.posting.PostingResponse;
@@ -24,11 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
-import java.util.Set;
 
-/**
- * Read/query operations over postings plus save/dismiss actions used by the job list.
- */
 @Service
 @RequiredArgsConstructor
 public class PostingService {
@@ -69,19 +66,29 @@ public class PostingService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostingResponse> getBySchedulerRunId(Long schedulerRunId) {
-        List<Posting> postings = postingRepository.findBySchedulerRunIdOrderByScoreDesc(schedulerRunId);
-        if (postings.isEmpty()) return List.of();
+    public CursorPageResponse<PostingResponse> getBySchedulerRunId(Long schedulerRunId, String cursor, int size) {
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        Pageable pageable = PageRequest.of(0, safeSize + 1);
+        List<Posting> postings;
+        if (cursor != null && !cursor.isBlank()) {
+            String[] parts = cursor.split("_");
+            int cursorScore = Integer.parseInt(parts[0]);
+            Long cursorId = Long.parseLong(parts[1]);
+            postings = postingRepository.findBySchedulerRunIdCursorAfter(schedulerRunId, cursorScore, cursorId, pageable);
+        } else {
+            postings = postingRepository.findBySchedulerRunIdCursor(schedulerRunId, pageable);
+        }
+        if (postings.isEmpty()) {
+            return new CursorPageResponse<>(List.of(), null, false, 0);
+        }
         List<Long> ids = postings.stream().map(Posting::getId).toList();
         Set<Long> savedIds = savedJobRepository.findSavedPostingIds(ids);
         Set<Long> dismissedIds = dismissedJobRepository.findDismissedPostingIds(ids);
         Set<Long> appliedIds = applicationRepository.findAppliedPostingIds(ids);
-        return postings.stream()
-                .map(p -> postingMapper.toResponse(p,
-                        savedIds.contains(p.getId()),
-                        dismissedIds.contains(p.getId()),
-                        appliedIds.contains(p.getId())))
-                .toList();
+        return CursorPageResponse.from(postings, safeSize, p -> postingMapper.toResponse(p,
+                savedIds.contains(p.getId()),
+                dismissedIds.contains(p.getId()),
+                appliedIds.contains(p.getId())));
     }
 
     @Transactional

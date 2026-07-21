@@ -4,7 +4,9 @@ import com.jobcopilot.entity.Posting;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -25,4 +27,10 @@ public interface PostingRepository extends JpaRepository<Posting, Long>, JpaSpec
     int archiveOlderThan(LocalDateTime cutoff);
 
     List<Posting> findBySchedulerRunIdOrderByScoreDesc(Long schedulerRunId);
+
+    @Query("SELECT p FROM Posting p WHERE p.schedulerRunId = :runId ORDER BY p.score DESC, p.id DESC")
+    List<Posting> findBySchedulerRunIdCursor(@Param("runId") Long runId, Pageable pageable);
+
+    @Query("SELECT p FROM Posting p WHERE p.schedulerRunId = :runId AND (p.score < :cursorScore OR (p.score = :cursorScore AND p.id < :cursorId)) ORDER BY p.score DESC, p.id DESC")
+    List<Posting> findBySchedulerRunIdCursorAfter(@Param("runId") Long runId, @Param("cursorScore") int cursorScore, @Param("cursorId") Long cursorId, Pageable pageable);
 }
