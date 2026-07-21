@@ -15,6 +15,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,16 +57,25 @@ public class JSearchAdapter extends AbstractHttpJobSourceAdapter {
 
     @Override
     public List<Object> fetchJobs() {
+        return fetchJobs(null);
+    }
+
+    @Override
+    public List<Object> fetchJobs(LocalDateTime since) {
         List<Object> raw = new ArrayList<>();
         String apiKey = settingsService.getValue("integration.jsearch.api-key", config.getApiKey());
-        String url = UriComponentsBuilder
+        UriComponentsBuilder urlBuilder = UriComponentsBuilder
                 .fromHttpUrl(config.getBaseUrl())
                 .path("/search-v2")
                 .queryParam("query", buildQuery())
                 .queryParam("page", 1)
-                .queryParam("num_pages", 1)
-                .build()
-                .toUriString();
+                .queryParam("num_pages", 1);
+        if (since != null) {
+            long days = ChronoUnit.DAYS.between(since, LocalDateTime.now(ZoneOffset.UTC));
+            int postedDays = postedParam(Math.max((int) days, 1));
+            urlBuilder.queryParam("posted", postedDays);
+        }
+        String url = urlBuilder.build().toUriString();
         try {
             JsonNode body = restClient.get()
                     .uri(url)
@@ -85,7 +97,7 @@ public class JSearchAdapter extends AbstractHttpJobSourceAdapter {
                     String dateStr = text(node, "job_posted_at_datetime_utc");
                     if (dateStr != null) {
                         var postedAt = parseIsoDate(dateStr);
-                        if (postedAt != null && postedAt.isBefore(java.time.LocalDateTime.now().minusDays(15))) {
+                        if (postedAt != null && postedAt.isBefore(java.time.LocalDateTime.now(ZoneOffset.UTC).minusDays(15))) {
                             continue;
                         }
                     }
@@ -168,5 +180,14 @@ public class JSearchAdapter extends AbstractHttpJobSourceAdapter {
             return "%,d - %,d".formatted(min, max);
         }
         return "%,d".formatted(min != null ? min : max);
+    }
+
+    /** Map a day count to the nearest JSearch posted parameter value (1, 3, 7, 14, 30). */
+    private static int postedParam(int days) {
+        if (days <= 1) return 1;
+        if (days <= 3) return 3;
+        if (days <= 7) return 7;
+        if (days <= 14) return 14;
+        return 30;
     }
 }

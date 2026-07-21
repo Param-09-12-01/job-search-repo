@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -112,7 +113,7 @@ public class SettingsService {
                     .orElseGet(() -> AppSetting.builder().key(key).secret(secret).build());
             setting.setValue(value);
             setting.setSecret(secret);
-            setting.setUpdatedAt(LocalDateTime.now());
+            setting.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
             settingRepository.save(setting);
         });
         return getSettings();

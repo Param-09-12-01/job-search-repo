@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 
@@ -76,7 +77,7 @@ public class LeverAdapter extends AbstractHttpJobSourceAdapter {
                         if (createdAt != null && createdAt.isNumber()) {
                             var postedAt = java.time.LocalDateTime.ofEpochSecond(
                                     createdAt.asLong() / 1000, 0, java.time.ZoneOffset.UTC);
-                            if (postedAt.isBefore(java.time.LocalDateTime.now().minusDays(MAX_DAYS_OLD))) {
+                            if (postedAt.isBefore(java.time.LocalDateTime.now(ZoneOffset.UTC).minusDays(MAX_DAYS_OLD))) {
                                 continue;
                             }
                         }

@@ -3,6 +3,7 @@ package com.jobcopilot.integration;
 import com.jobcopilot.dto.posting.NormalizedJob;
 import com.jobcopilot.entity.enums.JobSourceType;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -32,6 +33,14 @@ public interface JobSourceAdapter {
      * @return provider-native raw records (adapter-specific type)
      */
     List<Object> fetchJobs();
+
+    /**
+     * Fetch raw postings posted after the given timestamp. Default implementation ignores
+     * the parameter for adapters that don't support date filtering.
+     */
+    default List<Object> fetchJobs(LocalDateTime since) {
+        return fetchJobs();
+    }
 
     /**
      * Convert raw provider records into normalized job value objects. Records that cannot be

@@ -90,6 +90,8 @@ export const schedulerService = {
       .get<PageResponse<SchedulerLog>>('/scheduler/logs', { params: { page, size } })
       .then((r) => r.data),
   runNow: () => api.post<SchedulerLog>('/scheduler/run').then((r) => r.data),
+  jobsForRun: (runId: number) =>
+    api.get<Posting[]>('/scheduler/logs/' + runId + '/jobs').then((r) => r.data),
 };
 
 // --- Settings -------------------------------------------------------------------------------

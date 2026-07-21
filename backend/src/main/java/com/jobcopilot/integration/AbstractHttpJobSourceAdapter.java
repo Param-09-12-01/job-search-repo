@@ -96,7 +96,7 @@ public abstract class AbstractHttpJobSourceAdapter implements JobSourceAdapter {
 
     /** Filter jobs to only those posted within the given number of days. */
     protected List<NormalizedJob> filterRecent(List<NormalizedJob> jobs, int maxDays) {
-        LocalDateTime cutoff = LocalDateTime.now().minusDays(maxDays);
+        LocalDateTime cutoff = LocalDateTime.now(ZoneOffset.UTC).minusDays(maxDays);
         return jobs.stream()
                 .filter(j -> j.postedAt() == null || j.postedAt().isAfter(cutoff))
                 .toList();

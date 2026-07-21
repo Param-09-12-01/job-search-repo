@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -71,7 +72,7 @@ public class RemoteOkAdapter extends AbstractHttpJobSourceAdapter {
                     String dateStr = text(node, "date");
                     if (dateStr != null) {
                         var postedAt = parseIsoDate(dateStr);
-                        if (postedAt != null && postedAt.isBefore(java.time.LocalDateTime.now().minusDays(MAX_DAYS_OLD))) {
+                        if (postedAt != null && postedAt.isBefore(java.time.LocalDateTime.now(ZoneOffset.UTC).minusDays(MAX_DAYS_OLD))) {
                             continue;
                         }
                     }

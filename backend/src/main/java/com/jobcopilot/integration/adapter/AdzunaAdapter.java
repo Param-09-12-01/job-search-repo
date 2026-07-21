@@ -16,6 +16,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -80,7 +81,7 @@ public class AdzunaAdapter extends AbstractHttpJobSourceAdapter {
                 String dateStr = text(node, "created");
                 if (dateStr != null) {
                     var postedAt = parseIsoDate(dateStr);
-                    if (postedAt != null && postedAt.isBefore(java.time.LocalDateTime.now().minusDays(15))) {
+                    if (postedAt != null && postedAt.isBefore(java.time.LocalDateTime.now(ZoneOffset.UTC).minusDays(15))) {
                         continue;
                     }
                 }

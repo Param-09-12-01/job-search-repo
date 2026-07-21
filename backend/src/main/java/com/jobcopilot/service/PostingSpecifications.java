@@ -71,4 +71,9 @@ public final class PostingSpecifications {
         }
         return result;
     }
+
+    /** Exclude archived (soft-deleted) postings. */
+    public static Specification<Posting> notArchived() {
+        return (root, cq, cb) -> cb.isFalse(root.get("archived"));
+    }
 }

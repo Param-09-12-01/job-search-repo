@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
 
 /**
@@ -28,7 +29,7 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         Map<String, Object> body = Map.of(
-                "timestamp", LocalDateTime.now().toString(),
+                "timestamp", LocalDateTime.now(ZoneOffset.UTC).toString(),
                 "status", 401,
                 "error", "Unauthorized",
                 "message", "Authentication required",

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 
@@ -74,7 +75,7 @@ public class GreenhouseAdapter extends AbstractHttpJobSourceAdapter {
                         String dateStr = text(node, "updated_at");
                         if (dateStr != null) {
                             var postedAt = parseIsoDate(dateStr);
-                            if (postedAt != null && postedAt.isBefore(java.time.LocalDateTime.now().minusDays(MAX_DAYS_OLD))) {
+                            if (postedAt != null && postedAt.isBefore(java.time.LocalDateTime.now(ZoneOffset.UTC).minusDays(MAX_DAYS_OLD))) {
                                 continue;
                             }
                         }

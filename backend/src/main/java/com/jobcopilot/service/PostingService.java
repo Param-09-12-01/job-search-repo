@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
+import java.util.Set;
 
 /**
  * Read/query operations over postings plus save/dismiss actions used by the job list.
@@ -47,6 +48,7 @@ public class PostingService {
         List<Long> dismissedIds = includeDismissed ? List.of() : dismissedJobRepository.findAllDismissedPostingIds();
 
         Specification<Posting> spec = PostingSpecifications.combine(List.of(
+                PostingSpecifications.notArchived(),
                 PostingSpecifications.search(query),
                 PostingSpecifications.minScore(minScore),
                 PostingSpecifications.remote(remote),
@@ -64,6 +66,22 @@ public class PostingService {
     public PostingResponse getById(Long id) {
         Posting posting = findPosting(id);
         return toResponse(posting);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostingResponse> getBySchedulerRunId(Long schedulerRunId) {
+        List<Posting> postings = postingRepository.findBySchedulerRunIdOrderByScoreDesc(schedulerRunId);
+        if (postings.isEmpty()) return List.of();
+        List<Long> ids = postings.stream().map(Posting::getId).toList();
+        Set<Long> savedIds = savedJobRepository.findSavedPostingIds(ids);
+        Set<Long> dismissedIds = dismissedJobRepository.findDismissedPostingIds(ids);
+        Set<Long> appliedIds = applicationRepository.findAppliedPostingIds(ids);
+        return postings.stream()
+                .map(p -> postingMapper.toResponse(p,
+                        savedIds.contains(p.getId()),
+                        dismissedIds.contains(p.getId()),
+                        appliedIds.contains(p.getId())))
+                .toList();
     }
 
     @Transactional
@@ -105,7 +123,9 @@ public class PostingService {
     }
 
     private Posting findPosting(Long id) {
-        return postingRepository.findById(id)
+        return postingRepository.findOne(
+                        PostingSpecifications.notArchived()
+                                .and((root, cq, cb) -> cb.equal(root.get("id"), id)))
                 .orElseThrow(() -> ResourceNotFoundException.of("Posting", id));
     }
 

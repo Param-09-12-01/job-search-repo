@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -89,7 +90,7 @@ public class ApplicationService {
         if (request.status() == ApplicationStatus.APPLIED
                 && previous != ApplicationStatus.APPLIED
                 && application.getAppliedDate() == null) {
-            application.setAppliedDate(LocalDateTime.now());
+            application.setAppliedDate(LocalDateTime.now(ZoneOffset.UTC));
         }
         return toResponse(applicationRepository.save(application));
     }

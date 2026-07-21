@@ -84,4 +84,11 @@ public class Posting {
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean archived = false;
+
+    @Column(name = "scheduler_run_id")
+    private Long schedulerRunId;
 }

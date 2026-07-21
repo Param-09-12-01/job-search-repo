@@ -35,7 +35,7 @@ public class DashboardService {
         applicationRepository.countGroupedByStatus()
                 .forEach(row -> counts.put(row.getStatus(), row.getCount()));
 
-        long totalPostings = postingRepository.count();
+        long totalPostings = postingRepository.count(PostingSpecifications.notArchived());
         long appliedJobs = counts.getOrDefault(ApplicationStatus.APPLIED, 0L);
         long saved = savedJobRepository.count();
 

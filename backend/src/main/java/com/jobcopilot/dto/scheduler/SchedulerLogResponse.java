@@ -2,7 +2,7 @@ package com.jobcopilot.dto.scheduler;
 
 import com.jobcopilot.entity.enums.SchedulerRunStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Scheduler run log representation returned to clients.
@@ -10,8 +10,8 @@ import java.time.LocalDateTime;
 public record SchedulerLogResponse(
         Long id,
         SchedulerRunStatus status,
-        LocalDateTime startedAt,
-        LocalDateTime finishedAt,
+        Instant startedAt,
+        Instant finishedAt,
         int fetchedCount,
         int newCount,
         int duplicateCount,

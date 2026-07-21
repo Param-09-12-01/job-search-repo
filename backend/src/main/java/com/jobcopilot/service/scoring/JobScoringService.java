@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
 
@@ -172,7 +173,7 @@ public class JobScoringService {
         if (postedAt == null) {
             return 0.5;
         }
-        long days = Duration.between(postedAt, LocalDateTime.now()).toDays();
+        long days = Duration.between(postedAt, LocalDateTime.now(ZoneOffset.UTC)).toDays();
         if (days <= 0) {
             return 1.0;
         }

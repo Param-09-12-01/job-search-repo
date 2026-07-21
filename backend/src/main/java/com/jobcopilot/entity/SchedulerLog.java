@@ -1,6 +1,5 @@
 package com.jobcopilot.entity;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.jobcopilot.entity.enums.SchedulerRunStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,7 +15,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Records a single background scheduler run with its outcome and counters.
@@ -39,12 +38,10 @@ public class SchedulerLog {
     private SchedulerRunStatus status;
 
     @Column(name = "started_at", nullable = false)
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime startedAt;
+    private Instant startedAt;
 
     @Column(name = "finished_at")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime finishedAt;
+    private Instant finishedAt;
 
     @Column(name = "fetched_count", nullable = false)
     @Builder.Default
