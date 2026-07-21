@@ -61,13 +61,13 @@ export function ApplicationsPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {KANBAN_COLUMNS.map((c) => (
-            <Skeleton key={c.key} className="h-96 w-72 shrink-0" />
+            <Skeleton key={c.key} className="h-96 w-full" />
           ))}
         </div>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {KANBAN_COLUMNS.map((col) => {
             const items = board?.[col.key] ?? [];
             return (
@@ -80,7 +80,7 @@ export function ApplicationsPage() {
                 onDragLeave={() => setDragOver((s) => (s === col.key ? null : s))}
                 onDrop={(e) => onDrop(e, col.key)}
                 className={cn(
-                  'flex w-72 shrink-0 flex-col rounded-lg border bg-card/50 transition-colors',
+                  'flex w-full flex-col rounded-lg border bg-card/50 transition-colors',
                   dragOver === col.key && 'border-primary bg-primary/5',
                 )}
               >
