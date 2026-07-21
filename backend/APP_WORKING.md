@@ -288,6 +288,7 @@ Matched ──▶ Saved ──▶ Applied ──▶ Viewed ──▶ Interview �
 | GET | `/api/applications/board` | Auth | Kanban board grouped by status |
 | GET | `/api/applications/{id}` | Auth | Get single application |
 | POST | `/api/applications` | Auth | Create application from posting |
+| POST | `/api/applications/manual` | Auth | Create manual application (creates posting + application in one call) |
 | PATCH | `/api/applications/{id}` | Auth | Update status/notes |
 | DELETE | `/api/applications/{id}` | Auth | Delete application |
 

@@ -11,6 +11,18 @@ export type ApplicationStatus =
   | 'OFFER'
   | 'REJECTED';
 export type ApplicationMethod = 'MANUAL' | 'PREPARED' | 'EMAIL' | 'REFERRAL';
+
+export interface ManualApplicationRequest {
+  title: string;
+  company?: string;
+  location?: string;
+  url?: string;
+  description?: string;
+  salary?: string;
+  notes?: string;
+  status?: ApplicationStatus;
+  method?: ApplicationMethod;
+}
 export type NotificationChannel = 'EMAIL' | 'TELEGRAM';
 export type NotificationStatus = 'PENDING' | 'SENT' | 'FAILED';
 export type SchedulerRunStatus = 'RUNNING' | 'SUCCESS' | 'FAILED';

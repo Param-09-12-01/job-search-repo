@@ -2,6 +2,7 @@ package com.jobcopilot.controller;
 
 import com.jobcopilot.dto.application.ApplicationResponse;
 import com.jobcopilot.dto.application.CreateApplicationRequest;
+import com.jobcopilot.dto.application.ManualApplicationRequest;
 import com.jobcopilot.dto.application.UpdateApplicationRequest;
 import com.jobcopilot.entity.enums.ApplicationStatus;
 import com.jobcopilot.service.ApplicationService;
@@ -50,6 +51,12 @@ public class ApplicationController {
     @Operation(summary = "Get a single application")
     public ResponseEntity<ApplicationResponse> get(@PathVariable Long id) {
         return ResponseEntity.ok(applicationService.getById(id));
+    }
+
+    @PostMapping("/manual")
+    @Operation(summary = "Create a manual application (creates a posting + application in one call)")
+    public ResponseEntity<ApplicationResponse> createManual(@Valid @RequestBody ManualApplicationRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(applicationService.createManual(request));
     }
 
     @PostMapping

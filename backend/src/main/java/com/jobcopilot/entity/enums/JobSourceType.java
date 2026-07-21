@@ -10,5 +10,6 @@ public enum JobSourceType {
     GREENHOUSE,
     LEVER,
     REMOTEOK,
-    FINDWORK
+    FINDWORK,
+    MANUAL
 }

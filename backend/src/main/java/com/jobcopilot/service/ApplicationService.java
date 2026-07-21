@@ -2,6 +2,7 @@ package com.jobcopilot.service;
 
 import com.jobcopilot.dto.application.ApplicationResponse;
 import com.jobcopilot.dto.application.CreateApplicationRequest;
+import com.jobcopilot.dto.application.ManualApplicationRequest;
 import com.jobcopilot.dto.application.UpdateApplicationRequest;
 import com.jobcopilot.entity.Application;
 import com.jobcopilot.entity.Posting;
@@ -14,6 +15,7 @@ import com.jobcopilot.repository.ApplicationRepository;
 import com.jobcopilot.repository.DismissedJobRepository;
 import com.jobcopilot.repository.PostingRepository;
 import com.jobcopilot.repository.SavedJobRepository;
+import com.jobcopilot.util.HashUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ import java.time.ZoneOffset;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Manages the application lifecycle and the Kanban board. Enforces the single-application-per-posting
@@ -57,6 +60,41 @@ public class ApplicationService {
     @Transactional(readOnly = true)
     public ApplicationResponse getById(Long id) {
         return toResponse(findApplication(id));
+    }
+
+    @Transactional
+    public ApplicationResponse createManual(ManualApplicationRequest request) {
+        String fingerprint = HashUtil.fingerprint(request.title(), request.company(), request.location());
+        if (postingRepository.existsByFingerprint(fingerprint)) {
+            throw new ConflictException("A similar posting already exists (same title, company, location)");
+        }
+        Posting posting = Posting.builder()
+                .source("MANUAL")
+                .externalId(UUID.randomUUID().toString())
+                .title(request.title())
+                .company(request.company())
+                .location(request.location())
+                .url(request.url() == null ? "" : request.url())
+                .description(request.description())
+                .salary(request.salary())
+                .fingerprint(fingerprint)
+                .build();
+        posting = postingRepository.save(posting);
+
+        if (applicationRepository.existsByPostingId(posting.getId())) {
+            throw new ConflictException("An application already exists for posting id: " + posting.getId());
+        }
+        ApplicationStatus status = request.status() != null ? request.status() : ApplicationStatus.APPLIED;
+        Application application = Application.builder()
+                .posting(posting)
+                .status(status)
+                .notes(request.notes())
+                .method(request.method() == null ? ApplicationMethod.MANUAL : request.method())
+                .build();
+        if (status == ApplicationStatus.APPLIED) {
+            application.setAppliedDate(LocalDateTime.now(ZoneOffset.UTC));
+        }
+        return toResponse(applicationRepository.save(application));
     }
 
     @Transactional

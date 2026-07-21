@@ -1,23 +1,36 @@
 import { useState, type DragEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ExternalLink, Trash2 } from 'lucide-react';
+import { ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { applicationService } from '@/services';
 import { extractErrorMessage } from '@/services/api';
 import { useToast } from '@/contexts/ToastContext';
-import { KANBAN_COLUMNS } from '@/constants';
+import { KANBAN_COLUMNS, APPLICATION_STATUSES } from '@/constants';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/Dialog';
+import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
+import { Select } from '@/components/ui/Select';
+import { Label } from '@/components/ui/Label';
 import { cn } from '@/utils/cn';
-import type { Application, ApplicationStatus } from '@/types';
+import type { Application, ApplicationStatus, ManualApplicationRequest } from '@/types';
 
 export function ApplicationsPage() {
   const qc = useQueryClient();
   const { success, error } = useToast();
   const [dragOver, setDragOver] = useState<ApplicationStatus | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Application | null>(null);
+  const [showManual, setShowManual] = useState(false);
+  const [manualForm, setManualForm] = useState<ManualApplicationRequest>({ title: '', status: 'APPLIED' });
 
   const { data: board, isLoading } = useQuery({
     queryKey: ['applications', 'board'],
@@ -43,6 +56,18 @@ export function ApplicationsPage() {
     onError: (e) => error('Delete failed', extractErrorMessage(e)),
   });
 
+  const createManualMutation = useMutation({
+    mutationFn: (req: ManualApplicationRequest) => applicationService.createManual(req),
+    onSuccess: () => {
+      success('Manual application added');
+      setShowManual(false);
+      setManualForm({ title: '', status: 'APPLIED' });
+      qc.invalidateQueries({ queryKey: ['applications'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+    onError: (e) => error('Failed to add', extractErrorMessage(e)),
+  });
+
   const onDrop = (e: DragEvent, status: ApplicationStatus) => {
     e.preventDefault();
     setDragOver(null);
@@ -55,9 +80,15 @@ export function ApplicationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Application Tracker</h1>
-        <p className="text-sm text-muted-foreground">Drag cards between columns to update status</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Application Tracker</h1>
+          <p className="text-sm text-muted-foreground">Drag cards between columns to update status</p>
+        </div>
+        <Button onClick={() => setShowManual(true)}>
+          <Plus className="h-4 w-4 mr-1" />
+          Add Manual
+        </Button>
       </div>
 
       {isLoading ? (
@@ -142,6 +173,100 @@ export function ApplicationsPage() {
         destructive
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
       />
+
+      <Dialog open={showManual} onOpenChange={(o) => { if (!o) { setShowManual(false); setManualForm({ title: '', status: 'APPLIED' }); } }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add Manual Application</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!manualForm.title.trim()) return;
+              createManualMutation.mutate(manualForm);
+            }}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="title">Title *</Label>
+              <Input
+                id="title"
+                value={manualForm.title}
+                onChange={(e) => setManualForm({ ...manualForm, title: e.target.value })}
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="company">Company</Label>
+                <Input
+                  id="company"
+                  value={manualForm.company ?? ''}
+                  onChange={(e) => setManualForm({ ...manualForm, company: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={manualForm.location ?? ''}
+                  onChange={(e) => setManualForm({ ...manualForm, location: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="url">URL</Label>
+              <Input
+                id="url"
+                type="url"
+                value={manualForm.url ?? ''}
+                onChange={(e) => setManualForm({ ...manualForm, url: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="salary">Salary</Label>
+                <Input
+                  id="salary"
+                  value={manualForm.salary ?? ''}
+                  onChange={(e) => setManualForm({ ...manualForm, salary: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  id="status"
+                  value={manualForm.status ?? 'APPLIED'}
+                  onChange={(e) => setManualForm({ ...manualForm, status: e.target.value as ApplicationStatus })}
+                >
+                  {APPLICATION_STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {s.charAt(0) + s.slice(1).toLowerCase()}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={manualForm.notes ?? ''}
+                onChange={(e) => setManualForm({ ...manualForm, notes: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { setShowManual(false); setManualForm({ title: '', status: 'APPLIED' }); }}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createManualMutation.isPending || !manualForm.title.trim()}>
+                {createManualMutation.isPending ? 'Saving...' : 'Add'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

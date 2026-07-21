@@ -76,4 +76,9 @@ public final class PostingSpecifications {
     public static Specification<Posting> notArchived() {
         return (root, cq, cb) -> cb.isFalse(root.get("archived"));
     }
+
+    /** Exclude manually created postings from the jobs page. */
+    public static Specification<Posting> notManual() {
+        return (root, cq, cb) -> cb.notEqual(root.get("source"), "MANUAL");
+    }
 }

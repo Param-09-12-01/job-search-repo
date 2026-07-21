@@ -4,6 +4,7 @@ import type {
   ApplicationStatus,
   CursorPageResponse,
   Dashboard,
+  ManualApplicationRequest,
   NotificationItem,
   PageResponse,
   Posting,
@@ -67,6 +68,8 @@ export const applicationService = {
       .then((r) => r.data),
   create: (postingId: number, notes?: string) =>
     api.post<Application>('/applications', { postingId, notes }).then((r) => r.data),
+  createManual: (req: ManualApplicationRequest) =>
+    api.post<Application>('/applications/manual', req).then((r) => r.data),
   update: (id: number, status: ApplicationStatus, notes?: string) =>
     api.patch<Application>(`/applications/${id}`, { status, notes }).then((r) => r.data),
   remove: (id: number) => api.delete(`/applications/${id}`).then((r) => r.data),

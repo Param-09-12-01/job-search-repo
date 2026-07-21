@@ -46,6 +46,7 @@ public class PostingService {
 
         Specification<Posting> spec = PostingSpecifications.combine(List.of(
                 PostingSpecifications.notArchived(),
+                PostingSpecifications.notManual(),
                 PostingSpecifications.search(query),
                 PostingSpecifications.minScore(minScore),
                 PostingSpecifications.remote(remote),
