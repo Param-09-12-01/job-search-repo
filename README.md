@@ -33,6 +33,8 @@ tracks them through a Kanban pipeline, and notifies you of high matches via Emai
 ## Features
 
 - **Multi-source aggregation** via a pluggable connector architecture (Greenhouse, Lever, RemoteOK, Findwork, Adzuna, JSearch).
+- **Gmail + Ollama auto-detection** — sync sent emails, classify with a local LLM (Ollama), and auto-create Kanban entries for job applications.
+- **Manual job applications** — add entries for jobs you applied to outside the platform (with or without a linked posting).
 - **Weighted 0–100 scoring** across title, location, remote, salary, keywords, experience, freshness, with a company blacklist.
 - **Background scheduler** that fetches, de-duplicates, scores, stores, and notifies on a configurable cron (every 30 min by default).
 - **Per-source fetch tracking** — each source records its latest `postedAt` timestamp so only distinct daily jobs are fetched on subsequent runs.
@@ -53,7 +55,8 @@ tracks them through a Kanban pipeline, and notifies you of high matches via Emai
 ## Tech Stack
 
 **Backend:** Java 17, Spring Boot 3.3, Spring Security, Spring Data JPA/Hibernate, MySQL, Flyway,
-Maven, Lombok, MapStruct, Bean Validation, springdoc OpenAPI/Swagger, Redis cache, JUnit 5, Mockito.
+Maven, Lombok, MapStruct, Bean Validation, springdoc OpenAPI/Swagger, Redis cache, JUnit 5, Mockito,
+Ollama (local LLM client).
 
 **Frontend:** React 19, TypeScript, Vite, TailwindCSS, TanStack React Query, React Router, Axios,
 React Hook Form, Zod, shadcn/ui-style components, Framer Motion.
@@ -240,6 +243,8 @@ Settings resolve in this order (highest priority first):
 | `REMOTEOK_ENABLED` | yml / env | `true` | RemoteOK (no key needed) |
 | `FINDWORK_ENABLED` / `FINDWORK_API_KEY` | yml / env | `false` | Findwork (free key) |
 | `NOTIFY_EMAIL_ENABLED` / `MAIL_*` / `NOTIFY_EMAIL_TO` | yml / env | `false` | Email notifications |
+| `GMAIL_CLIENT_ID` / `GMAIL_CLIENT_SECRET` | Settings UI | — | Gmail OAuth Web application credentials |
+| `OLLAMA_BASE_URL` / `OLLAMA_MODEL` / `OLLAMA_TIMEOUT` | Settings UI | `http://192.168.29.24:11434` / `llama3.2` / `30s` | Local LLM for email classification |
 | `SCHEDULER_CRON` | yml | `0 */30 * * * *` | Fetch frequency |
 
 Most settings are also editable at runtime via **Settings** in the UI (secrets are masked).
@@ -310,6 +315,7 @@ Interactive docs: **`/swagger-ui.html`**. All routes require a Bearer JWT except
 | Notifications | `GET /api/notifications`, `GET /api/notifications/unread-count`, `PATCH /{id}/read` |
 | Scheduler | `GET /api/scheduler/logs`, `POST /api/scheduler/run`, `GET /api/scheduler/logs/{id}/jobs?cursor=&size=` |
 | Settings | `GET/PUT /api/settings` |
+| Sync | `POST /api/sync/gmail`, `GET /api/sync/gmail/status`, `GET /api/sync/gmail/auth-url`, `POST /api/sync/gmail/auth-callback`, `POST /api/sync/gmail/disconnect`, `GET /api/sync/gmail/profile`, `GET /api/sync/gmail/callback` (OAuth redirect) |
 | Dashboard | `GET /api/dashboard` |
 
 ---

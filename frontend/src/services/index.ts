@@ -4,6 +4,8 @@ import type {
   ApplicationStatus,
   CursorPageResponse,
   Dashboard,
+  GmailSyncResponse,
+  GmailSyncStatusResponse,
   ManualApplicationRequest,
   NotificationItem,
   PageResponse,
@@ -103,4 +105,21 @@ export const settingsService = {
   get: () => api.get<Settings>('/settings').then((r) => r.data),
   update: (values: Record<string, string>) =>
     api.put<Settings>('/settings', { values }).then((r) => r.data),
+};
+
+export const syncService = {
+  triggerGmailSync: (hours?: number) =>
+    api.post<GmailSyncResponse>('/sync/gmail', null, { params: hours ? { hours } : {} }).then((r) => r.data),
+  getGmailSyncStatus: () =>
+    api.get<GmailSyncStatusResponse>('/sync/gmail/status').then((r) => r.data),
+  getAuthUrl: () =>
+    api.get<{ authUrl: string }>('/sync/gmail/auth-url').then((r) => r.data),
+  authCallback: (code: string) =>
+    api.post<{ message: string }>('/sync/gmail/auth-callback', null, { params: { code } }).then((r) => r.data),
+  disconnectGmail: () =>
+    api.post<{ message: string }>('/sync/gmail/disconnect').then((r) => r.data),
+  getGmailProfile: () =>
+    api.get<any>('/sync/gmail/profile').then((r) => r.data),
+  diagnosticGmail: () =>
+    api.get<any>('/sync/gmail/diagnostic').then((r) => r.data),
 };

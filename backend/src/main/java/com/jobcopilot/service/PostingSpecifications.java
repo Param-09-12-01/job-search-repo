@@ -1,7 +1,6 @@
 package com.jobcopilot.service;
 
 import com.jobcopilot.entity.Posting;
-import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
@@ -65,9 +64,10 @@ public final class PostingSpecifications {
 
     public static Specification<Posting> combine(List<Specification<Posting>> specs) {
         Specification<Posting> result = Specification.where(null);
-        List<Specification<Posting>> nonNull = new ArrayList<>(specs);
-        for (Specification<Posting> spec : nonNull) {
-            result = result.and(spec);
+        for (Specification<Posting> spec : specs) {
+            if (spec != null) {
+                result = result.and(spec);
+            }
         }
         return result;
     }
@@ -77,8 +77,11 @@ public final class PostingSpecifications {
         return (root, cq, cb) -> cb.isFalse(root.get("archived"));
     }
 
-    /** Exclude manually created postings from the jobs page. */
+    /** Exclude manually created and Gmail-synced postings from the jobs page. */
     public static Specification<Posting> notManual() {
-        return (root, cq, cb) -> cb.notEqual(root.get("source"), "MANUAL");
+        return (root, cq, cb) -> cb.and(
+                cb.notEqual(root.get("source"), "MANUAL"),
+                cb.notEqual(root.get("source"), "GMAIL_SYNC")
+        );
     }
 }

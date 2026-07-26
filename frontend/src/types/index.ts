@@ -168,3 +168,20 @@ export interface ApiError {
   path: string;
   fieldErrors?: { field: string; message: string }[];
 }
+
+export interface GmailSyncResponse {
+  scanned: number;
+  detected: number;
+  added: number;
+  skipped: number;
+  errors: number;
+  syncTime: string;
+}
+
+export interface GmailSyncStatusResponse {
+  authorized: boolean;
+  authUrl?: string;
+  lastSyncTime?: string;
+  lastSyncResult?: GmailSyncResponse;
+  isRunning: boolean;
+}

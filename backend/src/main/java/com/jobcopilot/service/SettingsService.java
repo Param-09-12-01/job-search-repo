@@ -50,7 +50,13 @@ public class SettingsService {
             "integration.lever.companies",
             "integration.remoteok.enabled",
             "integration.findwork.enabled",
-            "integration.findwork.api-key"
+            "integration.findwork.api-key",
+            "ai.ollama.base-url",
+            "ai.ollama.model",
+            "gmail.client-id",
+            "gmail.client-secret",
+            "gmail.redirect-uri",
+            "gmail.refresh-token"
     );
 
     /** Keys whose values must be masked on read. */
@@ -58,7 +64,9 @@ public class SettingsService {
             "notification.telegram.bot-token",
             "integration.adzuna.app-key",
             "integration.jsearch.api-key",
-            "integration.findwork.api-key"
+            "integration.findwork.api-key",
+            "gmail.client-secret",
+            "gmail.refresh-token"
     );
 
     private final AppSettingRepository settingRepository;
@@ -117,6 +125,17 @@ public class SettingsService {
             settingRepository.save(setting);
         });
         return getSettings();
+    }
+
+    @Transactional
+    public void updateValue(String key, String value) {
+        boolean secret = SECRET_KEYS.contains(key);
+        AppSetting setting = settingRepository.findById(key)
+                .orElseGet(() -> AppSetting.builder().key(key).secret(secret).build());
+        setting.setValue(value);
+        setting.setSecret(secret);
+        setting.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        settingRepository.save(setting);
     }
 
     private boolean hasValue(String value) {

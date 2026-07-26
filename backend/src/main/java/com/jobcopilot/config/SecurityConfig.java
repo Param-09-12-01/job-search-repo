@@ -39,7 +39,8 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/actuator/health",
-            "/actuator/info"
+            "/actuator/info",
+            "/api/sync/gmail/callback"
     };
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;

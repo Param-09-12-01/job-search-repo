@@ -11,5 +11,6 @@ public enum JobSourceType {
     LEVER,
     REMOTEOK,
     FINDWORK,
-    MANUAL
+    MANUAL,
+    GMAIL_SYNC
 }

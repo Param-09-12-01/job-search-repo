@@ -133,7 +133,12 @@ export function ApplicationsPage() {
                       <p className="text-sm font-medium leading-snug">{app.posting.title}</p>
                       <p className="mt-1 text-xs text-muted-foreground">{app.posting.company}</p>
                       <div className="mt-2 flex items-center justify-between">
-                        <Badge variant="outline">{app.posting.score}</Badge>
+                        <div className="flex items-center gap-1">
+                          <Badge variant="outline">{app.posting.score}</Badge>
+                          {app.posting.source === 'GMAIL_SYNC' && (
+                            <Badge variant="secondary" className="text-[10px]">📧 Gmail</Badge>
+                          )}
+                        </div>
                         <div className="flex gap-1">
                           <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
                             <a href={app.posting.url} target="_blank" rel="noopener noreferrer">

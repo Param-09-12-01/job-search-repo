@@ -54,6 +54,17 @@ const SECTIONS: { title: string; fields: Field[] }[] = [
       { key: 'automation.browser-profile-path', label: 'Browser profile path' },
     ],
   },
+  {
+    title: 'AI & Gmail',
+    fields: [
+      { key: 'ai.ollama.base-url', label: 'Ollama base URL', placeholder: 'http://192.168.1.x:11434' },
+      { key: 'ai.ollama.model', label: 'Ollama model', placeholder: 'qwen2.5:12b' },
+      { key: 'gmail.client-id', label: 'Gmail client ID' },
+      { key: 'gmail.client-secret', label: 'Gmail client secret', type: 'password' },
+      { key: 'gmail.redirect-uri', label: 'Gmail redirect URI', placeholder: 'http://localhost:8080/api/sync/gmail/callback' },
+      { key: 'gmail.refresh-token', label: 'Gmail refresh token', type: 'password' },
+    ],
+  },
 ];
 
 export function SettingsPage() {

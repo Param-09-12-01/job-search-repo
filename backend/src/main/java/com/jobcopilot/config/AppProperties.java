@@ -25,6 +25,8 @@ public class AppProperties {
     private Integration integration = new Integration();
     @NestedConfigurationProperty
     private Automation automation = new Automation();
+    @NestedConfigurationProperty
+    private Ai ai = new Ai();
 
     @Data
     public static class Security {
@@ -168,5 +170,17 @@ public class AppProperties {
         private String browserProfilePath;
         private String helperScriptPath = "automation/prepare-application.mjs";
         private boolean headless = false;
+    }
+
+    @Data
+    public static class Ai {
+        private Ollama ollama = new Ollama();
+
+        @Data
+        public static class Ollama {
+            private String baseUrl = "http://localhost:11434";
+            private String model = "qwen2.5:12b";
+            private int timeoutSeconds = 30;
+        }
     }
 }
