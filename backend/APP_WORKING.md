@@ -362,3 +362,94 @@ This means: **DB settings always override `.env`**. If you set `ADZUNA_ENABLED=t
 | `FindworkAdapter.java` | Findwork API integration |
 | `JSearchAdapter.java` | JSearch RapidAPI integration (supports `posted` param) |
 | `AbstractHttpJobSourceAdapter.java` | Base adapter with shared helpers |
+| `GmailService.java` | Gmail OAuth2 + labelIds=SENT sent email fetch |
+| `GmailSyncService.java` | Gmail → Ollama → dedup → Posting/Application orchestrator |
+| `OllamaClient.java` | Local LLM email classification via /api/chat |
+| `SyncController.java` | Gmail sync REST endpoints |
+
+---
+
+## 9. Gmail + Ollama Auto-Detection
+
+Automatically detect job applications from sent emails using the Gmail API and a local LLM (Ollama).
+
+### Architecture
+
+```
+Dashboard "Sync Gmail" (manual trigger)
+    │
+    ▼
+GmailSyncService.sync(hours?)
+    │
+    ├── GmailService.fetchSentEmails(since)
+    │     └── GET /gmail/v1/users/me/messages?labelIds=SENT&q=after:{epoch}
+    │
+    ├── For each email:
+    │     ├── OllamaClient.classify(subject, body)
+    │     │     └── POST /api/chat (llama3.2) "Is this a job application?"
+    │     │
+    │     ├── If classification says YES (confidence >= 0.5):
+    │     │     ├── Compute SHA-256 fingerprint
+    │     │     ├── Skip if fingerprint exists (dedup)
+    │     │     ├── Create Posting (source=GMAIL_SYNC, company, title)
+    │     │     └── Create Application (status=APPLIED, method=PREPARED)
+    │     │
+    │     └── If classification says NO: skip
+    │
+    ▼
+Returns: GmailSyncResponse { scanned, detected, added, skipped, errors }
+```
+
+### Flow Diagram
+
+```
+Gmail API (sent emails)
+    │
+    ▼
+Raw email (subject + body)
+    │
+    ▼
+Ollama /api/chat (local LLM)
+    │
+    ├── Prompt: "Is this email a job application? Respond JSON: {isJobApplication, company, jobTitle, confidence}"
+    │
+    └── Response: EmailClassification
+          │
+          ├── isJobApplication=true, confidence>=0.5
+          │     └── Create Posting + Application (auto-added to Kanban "Applied")
+          │
+          └── isJobApplication=false
+                └── Skip (logged)
+```
+
+### Key Implementation Details
+
+| Aspect | Detail |
+|--------|--------|
+| Gmail API | Uses `labelIds=SENT` (NOT `in:sent` search — that returns 0 via API) |
+| `after:` filter | Unix epoch seconds via `uriBuilder` (avoids RestClient double-encoding) |
+| Dedup | SHA-256 fingerprint of email subject + body |
+| Ollama | Requires `Content-Type: application/json` (RestClient defaults to text/plain) |
+| Source tracking | `GMAIL_SYNC` in `JobSourceType` enum; excluded from manual filters |
+| Auth | OAuth2 Web application flow with refresh token |
+| Scope | `https://www.googleapis.com/auth/gmail.readonly` |
+
+### Configuration (Settings UI)
+
+| Setting | Key | Description |
+|---------|-----|-------------|
+| Ollama URL | `ai.ollama.base-url` | e.g. `http://192.168.29.24:11434` |
+| Ollama Model | `ai.ollama.model` | e.g. `llama3.2` |
+| Ollama Timeout | `ai.ollama.timeout` | e.g. `30s` |
+| Gmail Client ID | `gmail.client-id` | Google Cloud OAuth Web client ID |
+| Gmail Client Secret | `gmail.client-secret` | Google Cloud OAuth client secret |
+| Gmail Redirect URI | `gmail.redirect-uri` | Must match Google Cloud console |
+| Gmail Refresh Token | `gmail.refresh-token` | Auto-stored after auth callback |
+
+### Verification
+
+1. Dashboard → Gmail card → Authorize → sign in as your email
+2. Confirm "Connected as: your@email.com" shows with message count
+3. Select a time range and click "Sync Gmail"
+4. Check Applications page for new Kanban cards with 📧 badge
+5. Use the "Debug" button on Dashboard for detailed API diagnostics
