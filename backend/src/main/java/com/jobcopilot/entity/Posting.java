@@ -40,7 +40,7 @@ public class Posting {
     @Column(nullable = false, length = 50)
     private String source;
 
-    @Column(name = "external_id", nullable = false)
+    @Column(name = "external_id", nullable = false, length = 1024)
     private String externalId;
 
     @Column(nullable = false, length = 512)

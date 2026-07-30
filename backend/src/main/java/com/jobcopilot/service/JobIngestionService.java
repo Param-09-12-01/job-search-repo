@@ -10,6 +10,7 @@ import com.jobcopilot.repository.PostingRepository;
 import com.jobcopilot.repository.SourceFetchStateRepository;
 import com.jobcopilot.service.scoring.JobScoringService;
 import com.jobcopilot.util.HashUtil;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,7 @@ public class JobIngestionService {
     private final SettingsService settingsService;
     private final NotificationService notificationService;
     private final AppProperties properties;
+    private final EntityManager entityManager;
 
     /**
      * Aggregated outcome of a single ingestion run.
@@ -124,8 +126,9 @@ public class JobIngestionService {
                     updateFetchState(sourceName, maxPostedAt.toInstant(ZoneOffset.UTC));
                 }
             } catch (Exception e) {
-                // Isolate provider failures — log and continue with the next adapter.
+                // Isolate provider failures — log, clear Hibernate session, continue with next adapter.
                 log.error("Adapter {} failed during ingestion: {}", adapter.type(), e.getMessage(), e);
+                entityManager.clear();
             }
         }
 

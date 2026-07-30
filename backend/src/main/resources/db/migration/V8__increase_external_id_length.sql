@@ -1,0 +1,1 @@
+ALTER TABLE posting MODIFY external_id VARCHAR(1024) NOT NULL;
