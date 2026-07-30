@@ -6,6 +6,7 @@ import com.jobcopilot.repository.SchedulerLogRepository;
 import com.jobcopilot.service.JobIngestionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -56,6 +57,7 @@ public class JobFetchRunner {
         }
 
         try {
+            MDC.put("schedulerRunId", String.valueOf(logEntry.getId()));
             JobIngestionService.IngestionResult result = ingestionService.ingest(logEntry.getId());
 
             Long id = logEntry.getId();
@@ -83,6 +85,7 @@ public class JobFetchRunner {
             });
             logEntry.setStatus(SchedulerRunStatus.FAILED);
         } finally {
+            MDC.remove("schedulerRunId");
             running.set(false);
         }
         return logEntry;
