@@ -140,13 +140,13 @@ app:
       api-key: ${JSEARCH_API_KEY:}
       host: jsearch.p.rapidapi.com
     greenhouse:
-      enabled: ${GREENHOUSE_ENABLED:false}
+      enabled: ${GREENHOUSE_ENABLED:true}
       base-url: https://boards-api.greenhouse.io/v1/boards
-      boards: ${GREENHOUSE_BOARDS:}
+      boards: ${GREENHOUSE_BOARDS:stripe,airbnb}
     lever:
-      enabled: ${LEVER_ENABLED:false}
+      enabled: ${LEVER_ENABLED:true}
       base-url: https://api.lever.co/v0/postings
-      companies: ${LEVER_COMPANIES:}
+      companies: ${LEVER_COMPANIES:netflix,spotify}
     remoteok:
       enabled: ${REMOTEOK_ENABLED:true}
       base-url: https://remoteok.com/api
